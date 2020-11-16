@@ -16,6 +16,13 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r}
 www = "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_2010.csv"
 Tennis = read.csv(www)
+i=11
+for(i in 11:20){
+  
+  www = paste("https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_20",as.character(i),".csv",sep = "")
+  temp = read.csv(www)
+  Tennis = rbind(Tennis, temp)
+}
 ```
 
 ## Including Plots
