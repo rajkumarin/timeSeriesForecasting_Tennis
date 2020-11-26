@@ -8,7 +8,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r dataset}
 www = "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_2010.csv"
 Tennis = read.csv(www)
 i=11
@@ -18,4 +18,51 @@ for(i in 11:20){
   temp = read.csv(www)
   Tennis = rbind(Tennis, temp)
 }
+```
+```{r data org}
+library(stringr)
+library(tidyverse)
+top10 <- c("Novak Djokovic","Rafael Nadal","Roger Federer","Andy Murray","David Ferrer",
+           "Jo Wilfried Tsonga","Tomas Berdych","Mardy Fish","Janko Tipsarevic","Nicolas Almagro")
+tennis10 <- filter(Tennis, str_detect(winner_name, paste(top10, collapse="|"))|str_detect(loser_name, paste(top10, collapse="|")))
+```
+
+```{r data aggregation}
+tennis10$year <- substring(tennis10$tourney_id, 1, 4)
+tennis10$grandslam <- ifelse(tennis10$tourney_level == "G", "grandslam", "non-grandslam")
+
+total_wins <- tennis10 %>% group_by(winner_name, year, surface, grandslam)%>%
+  summarize(total_wins = n(),
+            total_win_rounds = mean(round),
+            total_win_aces = sum(w_ace),
+            total_win_df = sum(w_df),
+            total_win_svpt = mean(w_svpt),
+            total_win_1stIn = mean(w_1stIn),
+            total_win_1stWon = mean(w_1stWon),
+            total_win_2ndWon = mean(w_2ndWon),
+            total_win_bpSaved = sum(w_bpSaved),
+            total_win_bpFaced = sum(w_bpFaced))
+
+total_loses <- tennis10 %>% group_by(loser_name, year, surface, grandslam)%>%
+  summarize(total_loses = n(),
+            total_lose_rounds = mean(round),
+            total_lose_aces = sum(l_ace),
+            total_lose_df = sum(l_df),
+            total_lose_svpt = mean(l_svpt),
+            total_lose_1stIn = mean(l_1stIn),
+            total_lose_1stWon = mean(l_1stWon),
+            total_lose_2ndWon = mean(l_2ndWon),
+            total_lose_bpSaved = sum(l_bpSaved),
+            total_lose_bpFaced = sum(l_bpFaced))
+
+total_wins$concat <- paste(total_wins$winner_name, total_wins$year, total_wins$surface, total_wins$grandslam, sep="_")
+total_loses$concat <- paste(total_loses$loser_name, total_loses$year, total_loses$surface, total_loses$grandslam, sep="_")
+
+top_10_wins <- total_wins %>% filter(winner_name %in% top10)
+top_10_loses <- total_loses %>% filter(loser_name %in% top10)
+
+#colnames(top_10_wins)[1] <- "name"
+#colnames(top_10_loses)[1] <- "name"
+
+top10_aggregated <- left_join(top_10_wins,top_10_loses, by= "concat")
 ```
