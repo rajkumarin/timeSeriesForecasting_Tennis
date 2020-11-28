@@ -132,7 +132,7 @@ plot(winsts)
 ```
 
 ```{r }
-
+djo_ts = ts(count())
 ```
 
 
