@@ -19,6 +19,7 @@ for(i in 11:20){
   Tennis = rbind(Tennis, temp)
 }
 ```
+
 ```{r data org}
 library(stringr)
 library(tidyverse)
@@ -29,9 +30,10 @@ tennis10 <- filter(Tennis, str_detect(winner_name, paste(top10, collapse="|"))|s
 
 ```{r data aggregation}
 tennis10$year <- substring(tennis10$tourney_id, 1, 4)
+tennis10$month <- substring(tennis10$tourney_date, 5, 6)
 tennis10$grandslam <- ifelse(tennis10$tourney_level == "G", "grandslam", "non-grandslam")
 
-total_wins <- tennis10 %>% group_by(winner_name, year, surface, grandslam)%>%
+total_wins <- tennis10 %>% group_by(winner_name, year, month, surface, grandslam)%>%
   summarize(total_wins = n(),
             total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
@@ -43,7 +45,7 @@ total_wins <- tennis10 %>% group_by(winner_name, year, surface, grandslam)%>%
             total_win_bpSaved = sum(w_bpSaved),
             total_win_bpFaced = sum(w_bpFaced))
 
-total_loses <- tennis10 %>% group_by(loser_name, year, surface, grandslam)%>%
+total_loses <- tennis10 %>% group_by(loser_name, year, month, surface, grandslam)%>%
   summarize(total_loses = n(),
             total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
@@ -66,3 +68,61 @@ top_10_loses <- total_loses %>% filter(loser_name %in% top10)
 
 top10_aggregated <- left_join(top_10_wins,top_10_loses, by= "concat")
 ```
+```{r}
+total_w <- tennis10 %>% group_by(winner_name, year, month)%>%
+  summarize(total_wins = n(),
+            total_win_rounds = mean(round),
+            total_win_aces = sum(w_ace),
+            total_win_df = sum(w_df),
+            total_win_svpt = mean(w_svpt),
+            total_win_1stIn = mean(w_1stIn),
+            total_win_1stWon = mean(w_1stWon),
+            total_win_2ndWon = mean(w_2ndWon),
+            total_win_bpSaved = sum(w_bpSaved),
+            total_win_bpFaced = sum(w_bpFaced))
+
+total_l <- tennis10 %>% group_by(loser_name, year, month)%>%
+  summarize(total_loses = n(),
+            total_lose_rounds = mean(round),
+            total_lose_aces = sum(l_ace),
+            total_lose_df = sum(l_df),
+            total_lose_svpt = mean(l_svpt),
+            total_lose_1stIn = mean(l_1stIn),
+            total_lose_1stWon = mean(l_1stWon),
+            total_lose_2ndWon = mean(l_2ndWon),
+            total_lose_bpSaved = sum(l_bpSaved),
+            total_lose_bpFaced = sum(l_bpFaced))
+
+total_w$concat <- paste(total_w$winner_name, total_w$year, total_w$month, sep="_")
+total_l$concat <- paste(total_l$loser_name, total_l$year,  total_l$month, sep="_")
+
+top_10_w <- total_w %>% filter(winner_name %in% top10)
+top_10_l <- total_l %>% filter(loser_name %in% top10)
+
+#colnames(top_10_wins)[1] <- "name"
+#colnames(top_10_loses)[1] <- "name"
+
+top10_aggr <- left_join(top_10_w,top_10_l, by= "concat")
+```
+
+```{r Djokovic TS}
+djokovic  = subset(top10_aggr, winner_name == "Novak Djokovic")
+library(zoo)
+djokovic$date <- as.yearmon(paste(djokovic$year.x, djokovic$month.x), "%Y %m")
+djokovic_ts = xts(djokovic$total_wins, djokovic$date  )
+library(xts)
+summary(djokovic_ts)
+
+date<-djokovic$date
+wins<-djokovic$total_wins
+winsts<-ts(wins,start=c(2010,1), end=c(2019,11), freq = 12)
+summary(winsts)
+head(winsts)
+view(winsts)
+
+dts = ts(as.numeric(djokovic_ts))
+view(dts)
+
+plot(winsts)
+```
+
