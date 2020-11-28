@@ -23,6 +23,7 @@ for(i in 11:20){
 ```{r data org}
 library(stringr)
 library(tidyverse)
+library(dplyr)
 top10 <- c("Novak Djokovic","Rafael Nadal","Roger Federer","Andy Murray","David Ferrer",
            "Jo Wilfried Tsonga","Tomas Berdych","Mardy Fish","Janko Tipsarevic","Nicolas Almagro")
 tennis10 <- filter(Tennis, str_detect(winner_name, paste(top10, collapse="|"))|str_detect(loser_name, paste(top10, collapse="|")))
@@ -30,11 +31,11 @@ tennis10 <- filter(Tennis, str_detect(winner_name, paste(top10, collapse="|"))|s
 
 ```{r data aggregation}
 tennis10$year <- substring(tennis10$tourney_id, 1, 4)
-tennis10$month <- substring(tennis10$tourney_date, 5, 6)
+tennis10$qtr <- ceiling(as.numeric(substring(tennis10$tourney_date, 5, 6))/3)
 tennis10$grandslam <- ifelse(tennis10$tourney_level == "G", "grandslam", "non-grandslam")
 
-total_wins <- tennis10 %>% group_by(winner_name, year, month, surface, grandslam)%>%
-  summarize(total_wins = n(),
+total_wins <- tennis10 %>% group_by(winner_name, year, qtr, surface, grandslam)%>%
+  dplyr::summarize(total_wins = n(),
             total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
             total_win_df = sum(w_df),
@@ -45,8 +46,8 @@ total_wins <- tennis10 %>% group_by(winner_name, year, month, surface, grandslam
             total_win_bpSaved = sum(w_bpSaved),
             total_win_bpFaced = sum(w_bpFaced))
 
-total_loses <- tennis10 %>% group_by(loser_name, year, month, surface, grandslam)%>%
-  summarize(total_loses = n(),
+total_loses <- tennis10 %>% group_by(loser_name, year, qtr, surface, grandslam)%>%
+  dplyr::summarize(total_loses = n(),
             total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
             total_lose_df = sum(l_df),
@@ -70,8 +71,8 @@ top10_aggregated <- left_join(top_10_wins,top_10_loses, by= "concat")
 ```
 
 ```{r}
-total_w <- tennis10 %>% group_by(winner_name, year, month)%>%
-  summarize(total_wins = n(),
+total_w <- tennis10 %>% group_by(winner_name, year, qtr)%>%
+  dplyr::summarize(total_wins = n(),
             total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
             total_win_df = sum(w_df),
@@ -82,8 +83,8 @@ total_w <- tennis10 %>% group_by(winner_name, year, month)%>%
             total_win_bpSaved = sum(w_bpSaved),
             total_win_bpFaced = sum(w_bpFaced))
 
-total_l <- tennis10 %>% group_by(loser_name, year, month)%>%
-  summarize(total_loses = n(),
+total_l <- tennis10 %>% group_by(loser_name, year, qtr)%>%
+  dplyr::summarize(total_loses = n(),
             total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
             total_lose_df = sum(l_df),
@@ -94,8 +95,8 @@ total_l <- tennis10 %>% group_by(loser_name, year, month)%>%
             total_lose_bpSaved = sum(l_bpSaved),
             total_lose_bpFaced = sum(l_bpFaced))
 
-total_w$concat <- paste(total_w$winner_name, total_w$year, total_w$month, sep="_")
-total_l$concat <- paste(total_l$loser_name, total_l$year,  total_l$month, sep="_")
+total_w$concat <- paste(total_w$winner_name, total_w$year, total_w$qtr, sep="_")
+total_l$concat <- paste(total_l$loser_name, total_l$year,  total_l$qtr, sep="_")
 
 top_10_w <- total_w %>% filter(winner_name %in% top10)
 top_10_l <- total_l %>% filter(loser_name %in% top10)
@@ -130,36 +131,8 @@ view(dts)
 plot(winsts)
 ```
 
-```{r}
-tennis10$tourney_date = as.Date(tennis10$tourney_date)
-line1 = ggplot(tennis10,aes(tourney_date, w_ace))
-line1 +
-  stat_summary(fun.y = mean, ##adds the points
-               geom = "point")
-barplot(tourney_date~tourney_id, data=tennis10)
-hist(tennis10$tourney_date, breaks=500)
-```
 ```{r }
-library(Hmisc)
-graphdata = read.csv("05_data.csv")
-bar1 = ggplot(graphdata, aes(biz_focus, time.2, fill = internet))
-bar1 +
-  stat_summary(fun.y = mean,
-               geom = "bar",
-               position = "dodge") +
-  stat_summary(fun.data = mean_cl_normal,
-               geom = "errorbar", 
-               position = position_dodge(width = 0.90),
-               width = .2) +
-  ggtitle("2nd measurement Sales score across \ndifferent Business focus & Internet use") +
-  xlab("Business Marketing Focus") +
-  scale_x_discrete(labels=c("forward" = "Forward", "traditional" = "Traditional")) +
-  ylab("Sales score @ t2") + 
- # cleanup +
-  scale_fill_manual(name = "Internet use", 
-                    labels = c("Low", "Medium", "High"),
-                    values = c("Gray", "Gray40","Gray20")) +
-  theme_classic()
 
 ```
+
 
