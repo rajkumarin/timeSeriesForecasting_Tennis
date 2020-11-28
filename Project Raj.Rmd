@@ -68,6 +68,7 @@ top_10_loses <- total_loses %>% filter(loser_name %in% top10)
 
 top10_aggregated <- left_join(top_10_wins,top_10_loses, by= "concat")
 ```
+
 ```{r}
 total_w <- tennis10 %>% group_by(winner_name, year, month)%>%
   summarize(total_wins = n(),
@@ -112,6 +113,9 @@ djokovic$date <- as.yearmon(paste(djokovic$year.x, djokovic$month.x), "%Y %m")
 djokovic_ts = xts(djokovic$total_wins, djokovic$date  )
 library(xts)
 summary(djokovic_ts)
+ts1 = as.ts(djokovic_ts)
+plot(ts1)
+view(ts1)
 
 date<-djokovic$date
 wins<-djokovic$total_wins
@@ -124,5 +128,38 @@ dts = ts(as.numeric(djokovic_ts))
 view(dts)
 
 plot(winsts)
+```
+
+```{r}
+tennis10$tourney_date = as.Date(tennis10$tourney_date)
+line1 = ggplot(tennis10,aes(tourney_date, w_ace))
+line1 +
+  stat_summary(fun.y = mean, ##adds the points
+               geom = "point")
+barplot(tourney_date~tourney_id, data=tennis10)
+hist(tennis10$tourney_date, breaks=500)
+```
+```{r }
+library(Hmisc)
+graphdata = read.csv("05_data.csv")
+bar1 = ggplot(graphdata, aes(biz_focus, time.2, fill = internet))
+bar1 +
+  stat_summary(fun.y = mean,
+               geom = "bar",
+               position = "dodge") +
+  stat_summary(fun.data = mean_cl_normal,
+               geom = "errorbar", 
+               position = position_dodge(width = 0.90),
+               width = .2) +
+  ggtitle("2nd measurement Sales score across \ndifferent Business focus & Internet use") +
+  xlab("Business Marketing Focus") +
+  scale_x_discrete(labels=c("forward" = "Forward", "traditional" = "Traditional")) +
+  ylab("Sales score @ t2") + 
+ # cleanup +
+  scale_fill_manual(name = "Internet use", 
+                    labels = c("Low", "Medium", "High"),
+                    values = c("Gray", "Gray40","Gray20")) +
+  theme_classic()
+
 ```
 
