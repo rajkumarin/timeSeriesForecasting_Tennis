@@ -137,6 +137,32 @@ combinedData <- data.frame(djokovic_withdate$date, djokovicWinner_ts, djokovicWi
 colnames(combinedData) <- c("Date", "Wins", "Aces", "Defaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced")
 head(combinedData)
 
+plot(density(combinedData$Wins))
+
+boxplot(combinedData$Wins,combinedData$Aces, combinedData$Defaults, combinedData$ServePoints)
+install.packages("corrplot")
+library(corrplot)
+scatterplotMatrix(combinedData[3:10])
+
+cor1 <- cor(combinedData[3:10])
+round(cor1, 2)
+
+corrplot(cor1)
+
+
+# Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
+# and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
+
+djokovicFinal <- select(combinedData, Date, Wins, Aces, Defaults, ServePoints, BreakPointsSaved)
+
+cor2 <- cor(djokovicFinal[3:6])
+round(cor2, 2)
+
+corrplot(cor2)
+
+plot(decompose(djokovicFinal$Wins))
+acf(djokovicFinal$Wins)# Looks like we have AR(1)
+pacf(djokovicFinal$Wins)# First lag looks significant
 
 
 ```
