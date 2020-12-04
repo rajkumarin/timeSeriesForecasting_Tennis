@@ -290,3 +290,18 @@ pacf(federerFinal$Wins)# First lag looks significant
 ```
 
 
+```{r Train vs. Test}
+
+djokovic.train <- djokovicFinal[1:66,]
+djokovic.test <- djokovicFinal[67:132,]
+
+nadal.train <- nadalFinal[1:66,]
+nadal.test <- nadalFinal[67:132,]
+
+federer.train <- federerFinal[1:66,]
+federer.test <- federerFinal[67:132,]
+
+
+```
+
+
