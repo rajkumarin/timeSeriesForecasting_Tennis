@@ -42,7 +42,7 @@ tennis3$grandslam <- ifelse(tennis3$tourney_level == "G", "grandslam", "non-gran
 
 total_wins <- tennis3 %>% group_by(winner_name, year, month, surface, grandslam)%>%
   summarize(total_wins = n(),
-            total_win_rounds = mean(round),
+            #total_win_rounds = mean(round), #gives error since it is non numeric
             total_win_aces = sum(w_ace),
             total_win_df = sum(w_df),
             total_win_svpt = mean(w_svpt),
@@ -54,7 +54,7 @@ total_wins <- tennis3 %>% group_by(winner_name, year, month, surface, grandslam)
 
 total_loses <- tennis3 %>% group_by(loser_name, year, month, surface, grandslam)%>%
   summarize(total_loses = n(),
-            total_lose_rounds = mean(round),
+            #total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
             total_lose_df = sum(l_df),
             total_lose_svpt = mean(l_svpt),
@@ -79,7 +79,7 @@ top3_aggregated <- left_join(top_3_wins,top_3_loses, by= "concat")
 ```{r}
 total_w <- tennis3 %>% group_by(winner_name, year, month)%>%
   summarize(total_wins = n(),
-            total_win_rounds = mean(round),
+            #total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
             total_win_df = sum(w_df),
             total_win_svpt = mean(w_svpt),
@@ -91,7 +91,7 @@ total_w <- tennis3 %>% group_by(winner_name, year, month)%>%
 
 total_l <- tennis3 %>% group_by(loser_name, year, month)%>%
   summarize(total_loses = n(),
-            total_lose_rounds = mean(round),
+            #total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
             total_lose_df = sum(l_df),
             total_lose_svpt = mean(l_svpt),
@@ -125,7 +125,7 @@ summary(djokovic_withdate)
 djokovic_withdate[, 5]
 
 library("imputeTS")
-djokovic_withdate <- na_replace(djokovic_withdate, 0)
+djokovic_withdate <- na_replace(djokovic_withdate, 0) #NA replace with zero. Can we sum by quarters instead. I had that code. But may be missed to merge.
 djokovicWinner_ts <- ts(djokovic_withdate[,5], start = 2010, freq = 12)
 djokovicWinAces_ts <- ts(djokovic_withdate[,7], start = 2010, freq = 12)
 djokovicWinDF_ts <- ts(djokovic_withdate[,8], start = 2010, freq = 12)
@@ -326,6 +326,13 @@ arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FAL
 
 
 
+
+```
+
+```{r regression}
+ts.df = ts(cbind(djo=djokovicFinal[,2:6],nad=nadalFinal[,2:6],fed=federerFinal[,2:6]), start = c(substr(range(djokovicFinal$Date)[1],1,4),substr(range(djokovicFinal$Date)[1],6,7)), end=c(substr(range(djokovicFinal$Date)[2],1,4),substr(range(djokovicFinal$Date)[2],6,7)), frequency = 4)
+library(tseries)
+adf_result<- data.frame(matrix(unlist(apply(ts.df, 2, adf.test),recursive = FALSE),nrow=15, byrow=T, col)) #djo.Wins is stationary
 
 ```
 
