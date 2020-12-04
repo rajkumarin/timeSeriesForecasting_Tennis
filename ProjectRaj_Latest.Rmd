@@ -23,20 +23,23 @@ for(i in 11:20){
 ```{r data org}
 library(stringr)
 library(tidyverse)
-top10 <- c("Novak Djokovic","Rafael Nadal","Roger Federer","Andy Murray","David Ferrer",
+top3 <- c("Novak Djokovic","Rafael Nadal","Roger Federer")
+tennis3 <- filter(Tennis, str_detect(winner_name, paste(top3, collapse="|"))|str_detect(loser_name, paste(top3, collapse="|")))
+#top10 <- c("Novak Djokovic","Rafael Nadal","Roger Federer","Andy Murray","David Ferrer",
            "Jo Wilfried Tsonga","Tomas Berdych","Mardy Fish","Janko Tipsarevic","Nicolas Almagro")
-tennis10 <- filter(Tennis, str_detect(winner_name, paste(top10, collapse="|"))|str_detect(loser_name, paste(top10, collapse="|")))
+#tennis10 <- filter(Tennis, str_detect(winner_name, paste(top10, collapse="|"))|str_detect(loser_name, paste(top10, collapse="|")))
+
 ```
 
 ```{r data aggregation}
 
-tennis10 <- na.omit(tennis10)
+tennis3 <- na.omit(tennis3)
 
-tennis10$year <- substring(tennis10$tourney_id, 1, 4)
-tennis10$month <- substring(tennis10$tourney_date, 5, 6)
-tennis10$grandslam <- ifelse(tennis10$tourney_level == "G", "grandslam", "non-grandslam")
+tennis3$year <- substring(tennis3$tourney_id, 1, 4)
+tennis3$month <- substring(tennis3$tourney_date, 5, 6)
+tennis3$grandslam <- ifelse(tennis3$tourney_level == "G", "grandslam", "non-grandslam")
 
-total_wins <- tennis10 %>% group_by(winner_name, year, month, surface, grandslam)%>%
+total_wins <- tennis3 %>% group_by(winner_name, year, month, surface, grandslam)%>%
   summarize(total_wins = n(),
             total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
@@ -48,7 +51,7 @@ total_wins <- tennis10 %>% group_by(winner_name, year, month, surface, grandslam
             total_win_bpSaved = sum(w_bpSaved),
             total_win_bpFaced = sum(w_bpFaced))
 
-total_loses <- tennis10 %>% group_by(loser_name, year, month, surface, grandslam)%>%
+total_loses <- tennis3 %>% group_by(loser_name, year, month, surface, grandslam)%>%
   summarize(total_loses = n(),
             total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
@@ -63,16 +66,16 @@ total_loses <- tennis10 %>% group_by(loser_name, year, month, surface, grandslam
 total_wins$concat <- paste(total_wins$winner_name, total_wins$year, total_wins$surface, total_wins$grandslam, sep="_")
 total_loses$concat <- paste(total_loses$loser_name, total_loses$year, total_loses$surface, total_loses$grandslam, sep="_")
 
-top_10_wins <- total_wins %>% filter(winner_name %in% top10)
-top_10_loses <- total_loses %>% filter(loser_name %in% top10)
+top_10_wins <- total_wins %>% filter(winner_name %in% top3)
+top_10_loses <- total_loses %>% filter(loser_name %in% top3)
 
-#colnames(top_10_wins)[1] <- "name"
-#colnames(top_10_loses)[1] <- "name"
+#colnames(top_3_wins)[1] <- "name"
+#colnames(top_3_loses)[1] <- "name"
 
-top10_aggregated <- left_join(top_10_wins,top_10_loses, by= "concat")
+top3_aggregated <- left_join(top_3_wins,top_3_loses, by= "concat")
 ```
 ```{r}
-total_w <- tennis10 %>% group_by(winner_name, year, month)%>%
+total_w <- tennis3 %>% group_by(winner_name, year, month)%>%
   summarize(total_wins = n(),
             total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
@@ -84,7 +87,7 @@ total_w <- tennis10 %>% group_by(winner_name, year, month)%>%
             total_win_bpSaved = sum(w_bpSaved),
             total_win_bpFaced = sum(w_bpFaced))
 
-total_l <- tennis10 %>% group_by(loser_name, year, month)%>%
+total_l <- tennis3 %>% group_by(loser_name, year, month)%>%
   summarize(total_loses = n(),
             total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
@@ -99,17 +102,17 @@ total_l <- tennis10 %>% group_by(loser_name, year, month)%>%
 total_w$concat <- paste(total_w$winner_name, total_w$year, total_w$month, sep="_")
 total_l$concat <- paste(total_l$loser_name, total_l$year,  total_l$month, sep="_")
 
-top_10_w <- total_w %>% filter(winner_name %in% top10)
-top_10_l <- total_l %>% filter(loser_name %in% top10)
+top_3_w <- total_w %>% filter(winner_name %in% top3)
+top_3_l <- total_l %>% filter(loser_name %in% top3)
 
-#colnames(top_10_wins)[1] <- "name"
-#colnames(top_10_loses)[1] <- "name"
+#colnames(top_3_wins)[1] <- "name"
+#colnames(top_3_loses)[1] <- "name"
 
-top10_aggr <- left_join(top_10_w,top_10_l, by= "concat")
+top3_aggr <- left_join(top_3_w,top_3_l, by= "concat")
 ```
 
 ```{r Djokovic TS}
-djokovic  = subset(top10_aggr, winner_name == "Novak Djokovic")
+djokovic  = subset(top3_aggr, winner_name == "Novak Djokovic")
 library(zoo)
 djokovic$date <- as.Date(with(djokovic, paste(year.x, month.x, "01", sep = "-")), "%Y-%m-%d")
 date.month= data.frame(seq(as.Date("2010-01-01"), length=132, by="months"))
@@ -166,4 +169,124 @@ pacf(djokovicFinal$Wins)# First lag looks significant
 
 
 ```
+
+
+```{r Nadal TS}
+nadal  = subset(top3_aggr, winner_name == "Rafael Nadal")
+library(zoo)
+nadal$date <- as.Date(with(nadal, paste(year.x, month.x, "01", sep = "-")), "%Y-%m-%d")
+date.month= data.frame(seq(as.Date("2010-01-01"), length=132, by="months"))
+colnames(date.month)[1] <- "date"
+nadal_withdate <- left_join(date.month,nadal, by="date")
+summary(nadal_withdate)
+
+nadal_withdate[, 5]
+
+library("imputeTS")
+nadal_withdate <- na_replace(nadal_withdate, 0)
+nadalWinner_ts <- ts(nadal_withdate[,5], start = 2010, freq = 12)
+nadalWinAces_ts <- ts(nadal_withdate[,7], start = 2010, freq = 12)
+nadalWinDF_ts <- ts(nadal_withdate[,8], start = 2010, freq = 12)
+nadalWinSVPT_ts <- ts(nadal_withdate[,9], start = 2010, freq = 12)
+nadalWin1stIn_ts <- ts(nadal_withdate[,10], start = 2010, freq = 12)
+nadalWin1stWon_ts <- ts(nadal_withdate[,11], start = 2010, freq = 12)
+nadalWin2ndWon_ts <- ts(nadal_withdate[,12], start = 2010, freq = 12)
+nadalWinBPSaved_ts <- ts(nadal_withdate[,13], start = 2010, freq = 12)
+nadalWinBPFaced_ts <- ts(nadal_withdate[,13], start = 2010, freq = 12)
+
+#plot(nadal_ts)
+
+combinedData.nadal <- data.frame(nadal_withdate$date, nadalWinner_ts, nadalWinAces_ts, nadalWinDF_ts, nadalWinSVPT_ts, nadalWin1stIn_ts, nadalWin1stWon_ts, nadalWin2ndWon_ts, nadalWinBPSaved_ts, nadalWinBPFaced_ts)
+colnames(combinedData.nadal) <- c("Date", "Wins", "Aces", "Defaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced")
+head(combinedData.nadal)
+
+plot(density(combinedData.nadal$Wins))
+
+boxplot(combinedData.nadal$Wins,combinedData.nadal$Aces, combinedData.nadal$Defaults, combinedData.nadal$ServePoints)
+#install.packages("corrplot")
+library(corrplot)
+library(car)
+scatterplotMatrix(combinedData.nadal[3:10])
+
+cor1 <- cor(combinedData.nadal[3:10])
+round(cor1, 2)
+
+library(corrplot)
+corrplot(cor1)
+
+
+# Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
+# and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
+
+library(dplyr)
+nadalFinal <- select(combinedData.nadal, Date, Wins, Aces, Defaults, ServePoints, BreakPointsSaved)
+
+cor2 <- cor(nadalFinal[3:6])
+round(cor2, 2)
+
+corrplot(cor2)
+
+plot(decompose(nadalFinal$Wins))
+acf(nadalFinal$Wins)# Looks like we have AR(1)
+pacf(nadalFinal$Wins)# First lag looks significant
+```
+
+
+```{r Federer TS}
+federer  = subset(top3_aggr, winner_name == "Roger Federer")
+library(zoo)
+federer$date <- as.Date(with(federer, paste(year.x, month.x, "01", sep = "-")), "%Y-%m-%d")
+date.month= data.frame(seq(as.Date("2010-01-01"), length=132, by="months"))
+colnames(date.month)[1] <- "date"
+federer_withdate <- left_join(date.month,federer, by="date")
+summary(federer_withdate)
+
+federer_withdate[, 5]
+
+library("imputeTS")
+federer_withdate <- na_replace(federer_withdate, 0)
+federerWinner_ts <- ts(federer_withdate[,5], start = 2010, freq = 12)
+federerWinAces_ts <- ts(federer_withdate[,7], start = 2010, freq = 12)
+federerWinDF_ts <- ts(federer_withdate[,8], start = 2010, freq = 12)
+federerWinSVPT_ts <- ts(federer_withdate[,9], start = 2010, freq = 12)
+federerWin1stIn_ts <- ts(federer_withdate[,10], start = 2010, freq = 12)
+federerWin1stWon_ts <- ts(federer_withdate[,11], start = 2010, freq = 12)
+federerWin2ndWon_ts <- ts(federer_withdate[,12], start = 2010, freq = 12)
+federerWinBPSaved_ts <- ts(federer_withdate[,13], start = 2010, freq = 12)
+federerWinBPFaced_ts <- ts(federer_withdate[,13], start = 2010, freq = 12)
+
+#plot(federer_ts)
+
+combinedData <- data.frame(federer_withdate$date, federerWinner_ts, federerWinAces_ts, federerWinDF_ts, federerWinSVPT_ts, federerWin1stIn_ts, federerWin1stWon_ts, federerWin2ndWon_ts, federerWinBPSaved_ts, federerWinBPFaced_ts)
+colnames(combinedData) <- c("Date", "Wins", "Aces", "Defaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced")
+head(combinedData)
+
+plot(density(combinedData$Wins))
+
+boxplot(combinedData$Wins,combinedData$Aces, combinedData$Defaults, combinedData$ServePoints)
+#install.packages("corrplot")
+#library(corrplot)
+scatterplotMatrix(combinedData[3:10])
+
+cor1 <- cor(combinedData[3:10])
+round(cor1, 2)
+
+corrplot(cor1)
+
+
+# Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
+# and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
+
+federerFinal <- select(combinedData, Date, Wins, Aces, Defaults, ServePoints, BreakPointsSaved)
+
+cor2 <- cor(federerFinal[3:6])
+round(cor2, 2)
+
+corrplot(cor2)
+
+plot(decompose(federerFinal$Wins))
+acf(federerFinal$Wins)# Looks like we have AR(1)
+pacf(federerFinal$Wins)# First lag looks significant
+```
+
 
