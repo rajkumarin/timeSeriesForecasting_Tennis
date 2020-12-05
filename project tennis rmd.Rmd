@@ -145,7 +145,7 @@ head(combinedData.djokovic)
 plot(density(combinedData.djokovic$Wins))
 
 boxplot(combinedData.djokovic$Wins,combinedData.djokovic$Aces, combinedData.djokovic$Defaults, combinedData.djokovic$ServePoints)
-install.packages("corrplot")
+#install.packages("corrplot")
 library(corrplot)
 library(car)
 scatterplotMatrix(combinedData.djokovic[3:10])
@@ -310,6 +310,9 @@ federer.test <- federerFinal[67:132,]
 ```{r Arima Model}
 set.seed(2021)
 library(forecast)
+plot(ts(djokovic.train[2]))
+acf(ts(djokovic.train[2]))
+pacf(ts(djokovic.train[2]))
 arima.fit.djokovic <- Arima(ts(djokovic.train[2]), order = c(1,1,0))
 set.seed(2021)
 arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FALSE)
@@ -341,6 +344,51 @@ lm_nad = lm(ts.df[,6] ~ ts.df[,7]+ts.df[,8]+ts.df[,9]+ts.df[,10])
 summary(lm_nad)
 lm_fed = lm(ts.df[,11] ~ ts.df[,12]+ts.df[,13]+ts.df[,14]+ts.df[,15])
 summary(lm_fed)
+```
+```{r}
+plot(ts.df[,1])
+djo.pre = window(ts.df[,1],c(2010,1),c(2020,9))
+djo.post = window(ts.df[,1],c(2020,10),c(2020,12))
+
+Time = time(djo.pre)
+Seas = factor(cycle(djo.pre))
+
+djo.lm = lm(djo.pre ~ 0 + Time + Seas)
+coef(djo.lm)
+
+pred.Time = seq(2020.75+1/12, length=12, by=1/12)
+pred.Seas = factor(c(10,11,12,1,2,3,4,5,6,7,8,9))
+pred.data = data.frame(Time=pred.Time,Seas=pred.Seas)
+pred.data
+
+pred.djo.lm = predict(djo.lm, pred.data)
+pred.djo.lm
+
+djo.lm.resid<-djo.lm$residuals
+acf(djo.lm.resid)
+pacf(djo.lm.resid)
+
+best.order = c(0, 0, 0)
+best.aic = Inf
+for (i in 0:3) for (j in 0:3) {
+  fit.aic = AIC(arima(djo.lm.resid, order = c(i,0,j)))
+  if (fit.aic < best.aic) {
+    best.order = c(i, 0, j)
+    resid.best.arma = arima(djo.lm.resid, order = best.order)
+    best.aic = fit.aic
+  }}
+best.order
+#The best order is (0,0,2)
+resid.best.arma
+
+resid.best.arma.pred = predict(resid.best.arma, n.ahead = 12)
+resid.best.arma.pred$pred
+
+djo.pred <- ts((pred.djo.lm + resid.best.arma.pred$pred), start = c(2020,10), deltat = 1/12, freq = 12)
+djo.pred
+
+ts.plot(cbind(djo.pre, djo.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(djo.pre, djo.pred, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
 ```
 
 
