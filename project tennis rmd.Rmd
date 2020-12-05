@@ -332,8 +332,9 @@ arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FAL
 ```{r regression}
 ts.df = ts(cbind(djo=djokovicFinal[,2:6],nad=nadalFinal[,2:6],fed=federerFinal[,2:6]), start = c(substr(range(djokovicFinal$Date)[1],1,4),substr(range(djokovicFinal$Date)[1],6,7)), end=c(substr(range(djokovicFinal$Date)[2],1,4),substr(range(djokovicFinal$Date)[2],6,7)), frequency = 4)
 library(tseries)
-adf_result<- data.frame(matrix(unlist(apply(ts.df, 2, adf.test),recursive = FALSE),nrow=15, byrow=T, col)) #djo.Wins is stationary
-
+ #djo.Wins is stationary
+adf_result = data.frame(t(sapply(apply(ts.df, 2, adf.test),c)))
+adf_result$p.value
 ```
 
 
