@@ -315,22 +315,188 @@ acf(ts(djokovic.train[2]))
 pacf(ts(djokovic.train[2]))
 arima.fit.djokovic <- Arima(ts(djokovic.train[2]), order = c(1,1,0))
 set.seed(2021)
-arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FALSE)
-
-
-
-
-```
-
-
-
-```{r Federer TS}
+arima.auto.fit <- auto.arima(ts(djokovic.train[2]), approximation = FALSE, stepwise = FALSE)
 
 
 
 
 
 ```
+
+
+
+```{r Djokovic Regression & VAR}
+## DJOKOVIC
+adf.test(djokovicWinner_ts) #djokovicWinner_ts is stationary
+adf.test(djokovicWinAces_ts) #djokovicWinAces_ts is stationary
+adf.test(djokovicWinBPSaved_ts) #also stationary
+# When two variables are stationary, linear regression model is appropriate. VAR can also be used.
+
+po.test(cbind(djokovicWinner_ts, djokovicWinAces_ts))
+po.test(cbind(djokovicWinner_ts, djokovicWinBPSaved_ts))
+# The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
+# The two variables contain common stochastic trends.
+
+djo.lm1 <- lm(djokovicFinal$Wins ~ djokovicFinal$Aces)
+summary(djo.lm1)
+## If Djokovic increases his Ace by 1, his winner would go up by 0.42.
+djo.lm2 <- lm(djokovicFinal$Wins ~ djokovicFinal$BreakPointsSaved)
+summary(djo.lm2)
+## If Djokovic increases his number of BPsaved in the month by 1, his winner would go up by 0.51.
+djo.res <- resid(djo.lm)
+acf(djo.res) # white noise which means model is a good fit
+pacf(djo.res)
+djo.res2 <- resid(djo.lm2)
+acf(djo.res2) # white noise which means model is a good fit
+pacf(djo.res2)
+
+
+library(vars)
+djo.var <- VAR(cbind(djokovicWinner_ts, djokovicWinAces_ts), p = 3, type = "trend")
+coef(djo.var) #lag3 not significant
+djo.var <- VAR(cbind(djokovicWinner_ts, djokovicWinAces_ts), p = 2, type = "trend")
+coef(djo.var)
+djo.var2 <- VAR(cbind(djokovicWinner_ts, djokovicWinBPSaved_ts), p = 3, type = "trend")
+coef(djo.var2)
+# if winners goes up 1 last two months, the winner this month would go up by 0.32.
+# if ace goes up by 1 last 2 months, aces would go up by 0.38.
+acf(resid(djo.var)[, 1]) #white noise
+acf(resid(djo.var)[, 2]) #white noise
+acf(resid(djo.var2)[, 1]) #white noise
+acf(resid(djo.var2)[, 2]) #white noise
+# this confirms that this is a good model to use
+djo.pred <- predict(djo.var, n.ahead = 12)
+djo.pred
+djoWin.pred <- ts(djo.pred$fcst$djokovicWinner_ts[, 1], st = 2021, fr = 12)
+djoAces.pred <- ts(djo.pred$fcst$djokovicWinAces_ts[, 1], st = 2021, fr = 12)
+ts.plot(cbind(window(djokovicWinner_ts, start = 2010), djoWin.pred), lty = 1:2)
+ts.plot(cbind(window(djokovicWinAces_ts, start = 2010), djoAces.pred), lty = 1:2)
+
+djo.pred2 <- predict(djo.var2, n.ahead = 12)
+djo.pred2
+djoWin.pred2 <- ts(djo.pred2$fcst$djokovicWinner_ts[, 1], st = 2021, fr = 12)
+djoBP.pred2 <- ts(djo.pred2$fcst$djokovicWinBPSaved_ts[, 1], st = 2021, fr = 12)
+ts.plot(cbind(window(djokovicWinner_ts, start = 2010), djoWin.pred2), lty = 1:2)
+ts.plot(cbind(window(djokovicWinBPSaved_ts, start = 2010), djoBP.pred2), lty = 1:2)
+
+
+```
+
+```{r Federer Regression & VAR}
+## FEDERER
+adf.test(federerWinner_ts) #federerWinner_ts is stationary
+adf.test(federerWinAces_ts) #federerWinAces_ts is stationary
+adf.test(federerWinDF_ts) #also stationary
+adf.test(federerWinBPSaved_ts) #also stationary
+# When two variables are stationary, linear regression model is appropriate. VAR can also be used.
+po.test(cbind(federerWinner_ts, federerWinAces_ts))
+po.test(cbind(federerWinner_ts, federerWinBPSaved_ts))
+# The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
+# The two variables contain common stochastic trends.
+
+fed.lm <- lm(federerFinal$Wins ~ federerFinal$Aces)
+summary(fed.lm)
+## If Federer increases his Ace by 1, his winner would go up by 0.2.
+fed.lm2 <- lm(federerFinal$Wins ~ federerWinBPSaved_ts)
+summary(fed.lm2)
+## If Federer increases his number of BPsaved in the month by 1, his winner would go up by 0.56.
+fed.res <- resid(fed.lm)
+acf(fed.res) # white noise which means model is a good fit
+pacf(fed.res)
+fed.res2 <- resid(fed.lm2)
+acf(fed.res2) # white noise which means model is a good fit
+pacf(fed.res2)
+
+
+library(vars)
+fed.var <- VAR(cbind(federerWinner_ts, federerWinAces_ts), p = 3, type = "trend")
+coef(fed.var) #lag3 not significant
+fed.var <- VAR(cbind(federerWinner_ts, federerWinAces_ts), p = 2, type = "trend")
+coef(fed.var)
+fed.var2 <- VAR(cbind(federerWinner_ts, federerWinBPSaved_ts), p = 3, type = "trend")
+coef(fed.var2)
+# if winners goes up 1 last two months, the winner this month would go up by 0.32.
+# if ace goes up by 1 last 2 months, aces would go up by 0.38.
+acf(resid(fed.var)[, 1]) #white noise
+acf(resid(fed.var)[, 2]) #white noise
+acf(resid(fed.var2)[, 1]) #white noise
+acf(resid(fed.var2)[, 2]) #white noise
+# this confirms that this is a good model to use
+fed.pred <- predict(fed.var, n.ahead = 12)
+fed.pred
+fedWin.pred <- ts(fed.pred$fcst$federerWinner_ts[, 1], st = 2021, fr = 12)
+fedAces.pred <- ts(fed.pred$fcst$federerWinAces_ts[, 1], st = 2021, fr = 12)
+ts.plot(cbind(window(federerWinner_ts, start = 2010), fedWin.pred), lty = 1:2)
+ts.plot(cbind(window(federerWinAces_ts, start = 2010), fedAces.pred), lty = 1:2)
+
+fed.pred2 <- predict(fed.var2, n.ahead = 12)
+fed.pred2
+fedWin.pred2 <- ts(fed.pred2$fcst$federerWinner_ts[, 1], st = 2021, fr = 12)
+fedBP.pred2 <- ts(fed.pred2$fcst$federerWinBPSaved_ts[, 1], st = 2021, fr = 12)
+ts.plot(cbind(window(federerWinner_ts, start = 2010), fedWin.pred2), lty = 1:2)
+ts.plot(cbind(window(federerWinBPSaved_ts, start = 2010), fedBP.pred2), lty = 1:2)
+
+
+```
+
+```{r Nadal Regression & VAR}
+## NADAL
+adf.test(nadalWinner_ts) #nadalWinner_ts is stationary
+adf.test(nadalWinAces_ts) #nadalWinAces_ts is stationary
+adf.test(nadalWinBPSaved_ts) #also stationary
+# When two variables are stationary, linear regression model is appropriate. VAR can also be used.
+po.test(cbind(nadalWinner_ts, nadalWinAces_ts))
+po.test(cbind(nadalWinner_ts, nadalWinBPSaved_ts))
+# The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
+# The two variables contain common stochastic trends.
+
+nad.lm <- lm(nadalFinal$Wins ~ nadalFinal$Aces)
+summary(nad.lm)
+## If Nadal increases his Ace by 1, his winner would go up by 0.23.
+nad.lm2 <- lm(nadalFinal$Wins ~ nadalWinBPSaved_ts)
+summary(nad.lm2)
+## If Nadal increases his number of BPsaved in the month by 1, his winner would go up by 0.59.
+nad.res <- resid(nad.lm)
+acf(nad.res) # white noise which means model is a good fit
+pacf(nad.res)
+nad.res2 <- resid(nad.lm2)
+acf(nad.res2) # white noise which means model is a good fit
+pacf(nad.res2)
+
+
+library(vars)
+nad.var <- VAR(cbind(nadalWinner_ts, nadalWinAces_ts), p = 3, type = "trend")
+coef(nad.var) #lag3 not significant
+nad.var <- VAR(cbind(nadalWinner_ts, nadalWinAces_ts), p = 2, type = "trend")
+coef(nad.var)
+nad.var2 <- VAR(cbind(nadalWinner_ts, nadalWinBPSaved_ts), p = 3, type = "trend")
+coef(nad.var2)
+# if winners goes up 1 last two months, the winner this month would go up by 0.32.
+# if ace goes up by 1 last 2 months, aces would go up by 0.38.
+acf(resid(nad.var)[, 1]) #white noise
+acf(resid(nad.var)[, 2]) #white noise
+acf(resid(nad.var2)[, 1]) #white noise
+acf(resid(nad.var2)[, 2]) #white noise
+# this confirms that this is a good model to use
+nad.pred <- predict(nad.var, n.ahead = 12)
+nad.pred
+nadWin.pred <- ts(nad.pred$fcst$nadalWinner_ts[, 1], st = 2021, fr = 12)
+nadAces.pred <- ts(nad.pred$fcst$nadalWinAces_ts[, 1], st = 2021, fr = 12)
+ts.plot(cbind(window(nadalWinner_ts, start = 2010), nadWin.pred), lty = 1:2)
+ts.plot(cbind(window(nadalWinAces_ts, start = 2010), nadAces.pred), lty = 1:2)
+
+nad.pred2 <- predict(nad.var2, n.ahead = 12)
+nad.pred2
+nadWin.pred2 <- ts(nad.pred2$fcst$nadalWinner_ts[, 1], st = 2021, fr = 12)
+nadBP.pred2 <- ts(nad.pred2$fcst$nadalWinBPSaved_ts[, 1], st = 2021, fr = 12)
+ts.plot(cbind(window(nadalWinner_ts, start = 2010), nadWin.pred2), lty = 1:2)
+ts.plot(cbind(window(nadalWinBPSaved_ts, start = 2010), nadBP.pred2), lty = 1:2)
+
+
+
+
+```
+
 
 ```{r regression}
 ts.df = ts(cbind(djo=djokovicFinal[,2:6],nad=nadalFinal[,2:6],fed=federerFinal[,2:6]), start = c(substr(range(djokovicFinal$Date)[1],1,4),substr(range(djokovicFinal$Date)[1],6,7)), end=c(substr(range(djokovicFinal$Date)[2],1,4),substr(range(djokovicFinal$Date)[2],6,7)), frequency = 12)
