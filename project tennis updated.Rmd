@@ -32,7 +32,7 @@ tennis3 <- filter(Tennis, str_detect(winner_name, paste(top3, collapse="|"))|str
 
 ```
 
-```{r data aggregation}
+```{r data aggregation- don't use}
 
 tennis3 <- na.omit(tennis3)
 
@@ -42,7 +42,7 @@ tennis3$grandslam <- ifelse(tennis3$tourney_level == "G", "grandslam", "non-gran
 
 total_wins <- tennis3 %>% group_by(winner_name, year, month, surface, grandslam)%>%
   summarize(total_wins = n(),
-            #total_win_rounds = mean(round), #gives error since it is non numeric
+            total_win_rounds = mean(round),
             total_win_aces = sum(w_ace),
             total_win_df = sum(w_df),
             total_win_svpt = mean(w_svpt),
@@ -54,7 +54,7 @@ total_wins <- tennis3 %>% group_by(winner_name, year, month, surface, grandslam)
 
 total_loses <- tennis3 %>% group_by(loser_name, year, month, surface, grandslam)%>%
   summarize(total_loses = n(),
-            #total_lose_rounds = mean(round),
+            total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
             total_lose_df = sum(l_df),
             total_lose_svpt = mean(l_svpt),
@@ -79,19 +79,20 @@ top3_aggregated <- left_join(top_3_wins,top_3_loses, by= "concat")
 ```{r}
 total_w <- tennis3 %>% group_by(winner_name, year, month)%>%
   summarize(total_wins = n(),
-            #total_win_rounds = mean(round),
-            total_win_aces = sum(w_ace),
-            total_win_df = sum(w_df),
+            total_win_rounds = mean(round),
+            total_win_aces = mean(w_ace),
+            total_win_df = mean(w_df),
             total_win_svpt = mean(w_svpt),
             total_win_1stIn = mean(w_1stIn),
             total_win_1stWon = mean(w_1stWon),
             total_win_2ndWon = mean(w_2ndWon),
-            total_win_bpSaved = sum(w_bpSaved),
-            total_win_bpFaced = sum(w_bpFaced))
+            total_win_bpSaved = mean(w_bpSaved),
+            total_win_bpFaced = mean(w_bpFaced),
+            duration_win = mean(minutes))
 
 total_l <- tennis3 %>% group_by(loser_name, year, month)%>%
   summarize(total_loses = n(),
-            #total_lose_rounds = mean(round),
+            total_lose_rounds = mean(round),
             total_lose_aces = sum(l_ace),
             total_lose_df = sum(l_df),
             total_lose_svpt = mean(l_svpt),
@@ -125,7 +126,7 @@ summary(djokovic_withdate)
 djokovic_withdate[, 5]
 
 library("imputeTS")
-djokovic_withdate <- na_replace(djokovic_withdate, 0) #NA replace with zero. Can we sum by quarters instead. I had that code. But may be missed to merge.
+djokovic_withdate <- na_replace(djokovic_withdate, 0)
 djokovicWinner_ts <- ts(djokovic_withdate[,5], start = 2010, freq = 12)
 djokovicWinAces_ts <- ts(djokovic_withdate[,7], start = 2010, freq = 12)
 djokovicWinDF_ts <- ts(djokovic_withdate[,8], start = 2010, freq = 12)
@@ -134,23 +135,24 @@ djokovicWin1stIn_ts <- ts(djokovic_withdate[,10], start = 2010, freq = 12)
 djokovicWin1stWon_ts <- ts(djokovic_withdate[,11], start = 2010, freq = 12)
 djokovicWin2ndWon_ts <- ts(djokovic_withdate[,12], start = 2010, freq = 12)
 djokovicWinBPSaved_ts <- ts(djokovic_withdate[,13], start = 2010, freq = 12)
-djokovicWinBPFaced_ts <- ts(djokovic_withdate[,13], start = 2010, freq = 12)
+djokovicWinBPFaced_ts <- ts(djokovic_withdate[,14], start = 2010, freq = 12)
+djokovicDuration_ts <- ts(djokovic_withdate[,15], start = 2010, freq = 12)
 
 #plot(djokovic_ts)
 
-combinedData.djokovic <- data.frame(djokovic_withdate$date, djokovicWinner_ts, djokovicWinAces_ts, djokovicWinDF_ts, djokovicWinSVPT_ts, djokovicWin1stIn_ts, djokovicWin1stWon_ts, djokovicWin2ndWon_ts, djokovicWinBPSaved_ts, djokovicWinBPFaced_ts)
-colnames(combinedData.djokovic) <- c("Date", "Wins", "Aces", "Defaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced")
+combinedData.djokovic <- data.frame(djokovic_withdate$date, djokovicWinner_ts, djokovicWinAces_ts, djokovicWinDF_ts, djokovicWinSVPT_ts, djokovicWin1stIn_ts, djokovicWin1stWon_ts, djokovicWin2ndWon_ts, djokovicWinBPSaved_ts, djokovicWinBPFaced_ts, djokovicDuration_ts)
+colnames(combinedData.djokovic) <- c("Date", "Wins", "Aces", "Doublefaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced", "Duration")
 head(combinedData.djokovic)
 
 plot(density(combinedData.djokovic$Wins))
 
-boxplot(combinedData.djokovic$Wins,combinedData.djokovic$Aces, combinedData.djokovic$Defaults, combinedData.djokovic$ServePoints)
-#install.packages("corrplot")
+boxplot(combinedData.djokovic$Wins,combinedData.djokovic$Aces, combinedData.djokovic$Doublefaults, combinedData.djokovic$ServePoints, combinedData.djokovic$Duration)
+install.packages("corrplot")
 library(corrplot)
 library(car)
-scatterplotMatrix(combinedData.djokovic[3:10])
+scatterplotMatrix(combinedData.djokovic[3:11])
 
-cor1 <- cor(combinedData.djokovic[3:10])
+cor1 <- cor(combinedData.djokovic[3:11])
 round(cor1, 2)
 
 corrplot(cor1)
@@ -159,9 +161,9 @@ corrplot(cor1)
 # Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
 # and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
 
-djokovicFinal <- select(combinedData.djokovic, Date, Wins, Aces, Defaults, ServePoints, BreakPointsSaved)
+djokovicFinal <- select(combinedData.djokovic, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved,Duration)
 
-cor2 <- cor(djokovicFinal[3:6])
+cor2 <- cor(djokovicFinal[3:7])
 round(cor2, 2)
 
 corrplot(cor2)
@@ -193,23 +195,24 @@ nadalWin1stIn_ts <- ts(nadal_withdate[,10], start = 2010, freq = 12)
 nadalWin1stWon_ts <- ts(nadal_withdate[,11], start = 2010, freq = 12)
 nadalWin2ndWon_ts <- ts(nadal_withdate[,12], start = 2010, freq = 12)
 nadalWinBPSaved_ts <- ts(nadal_withdate[,13], start = 2010, freq = 12)
-nadalWinBPFaced_ts <- ts(nadal_withdate[,13], start = 2010, freq = 12)
+nadalWinBPFaced_ts <- ts(nadal_withdate[,14], start = 2010, freq = 12)
+nadalDuration_ts <- ts(nadal_withdate[,15], start = 2010, freq = 12)
 
 #plot(nadal_ts)
 
-combinedData.nadal <- data.frame(nadal_withdate$date, nadalWinner_ts, nadalWinAces_ts, nadalWinDF_ts, nadalWinSVPT_ts, nadalWin1stIn_ts, nadalWin1stWon_ts, nadalWin2ndWon_ts, nadalWinBPSaved_ts, nadalWinBPFaced_ts)
-colnames(combinedData.nadal) <- c("Date", "Wins", "Aces", "Defaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced")
+combinedData.nadal <- data.frame(nadal_withdate$date, nadalWinner_ts, nadalWinAces_ts, nadalWinDF_ts, nadalWinSVPT_ts, nadalWin1stIn_ts, nadalWin1stWon_ts, nadalWin2ndWon_ts, nadalWinBPSaved_ts, nadalWinBPFaced_ts, nadalDuration_ts)
+colnames(combinedData.nadal) <- c("Date", "Wins", "Aces", "Doublefaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced", "Duration")
 head(combinedData.nadal)
 
 plot(density(combinedData.nadal$Wins))
 
-boxplot(combinedData.nadal$Wins,combinedData.nadal$Aces, combinedData.nadal$Defaults, combinedData.nadal$ServePoints)
+boxplot(combinedData.nadal$Wins,combinedData.nadal$Aces, combinedData.nadal$Doublefaults, combinedData.nadal$ServePoints)
 #install.packages("corrplot")
 library(corrplot)
 library(car)
-scatterplotMatrix(combinedData.nadal[3:10])
+scatterplotMatrix(combinedData.nadal[3:11])
 
-cor1 <- cor(combinedData.nadal[3:10])
+cor1 <- cor(combinedData.nadal[3:11])
 round(cor1, 2)
 
 library(corrplot)
@@ -220,9 +223,9 @@ corrplot(cor1)
 # and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
 
 library(dplyr)
-nadalFinal <- select(combinedData.nadal, Date, Wins, Aces, Defaults, ServePoints, BreakPointsSaved)
+nadalFinal <- select(combinedData.nadal, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved, Duration)
 
-cor2 <- cor(nadalFinal[3:6])
+cor2 <- cor(nadalFinal[3:7])
 round(cor2, 2)
 
 corrplot(cor2)
@@ -254,22 +257,23 @@ federerWin1stIn_ts <- ts(federer_withdate[,10], start = 2010, freq = 12)
 federerWin1stWon_ts <- ts(federer_withdate[,11], start = 2010, freq = 12)
 federerWin2ndWon_ts <- ts(federer_withdate[,12], start = 2010, freq = 12)
 federerWinBPSaved_ts <- ts(federer_withdate[,13], start = 2010, freq = 12)
-federerWinBPFaced_ts <- ts(federer_withdate[,13], start = 2010, freq = 12)
+federerWinBPFaced_ts <- ts(federer_withdate[,14], start = 2010, freq = 12)
+federerDuration_ts <- ts(federer_withdate[,15], start = 2010, freq = 12)
 
 #plot(federer_ts)
 
-combinedData <- data.frame(federer_withdate$date, federerWinner_ts, federerWinAces_ts, federerWinDF_ts, federerWinSVPT_ts, federerWin1stIn_ts, federerWin1stWon_ts, federerWin2ndWon_ts, federerWinBPSaved_ts, federerWinBPFaced_ts)
-colnames(combinedData) <- c("Date", "Wins", "Aces", "Defaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced")
-head(combinedData)
+combinedData.federer <- data.frame(federer_withdate$date, federerWinner_ts, federerWinAces_ts, federerWinDF_ts, federerWinSVPT_ts, federerWin1stIn_ts, federerWin1stWon_ts, federerWin2ndWon_ts, federerWinBPSaved_ts, federerWinBPFaced_ts, federerDuration_ts)
+colnames(combinedData.federer) <- c("Date", "Wins", "Aces", "Doublefaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced", "Duration")
+head(combinedData.federer)
 
-plot(density(combinedData$Wins))
+plot(density(combinedData.federer$Wins))
 
-boxplot(combinedData$Wins,combinedData$Aces, combinedData$Defaults, combinedData$ServePoints)
+boxplot(combinedData.federer$Wins,combinedData.federer$Aces, combinedData.federer$Doublefaults, combinedData.federer$ServePoints)
 #install.packages("corrplot")
 #library(corrplot)
-scatterplotMatrix(combinedData[3:10])
+scatterplotMatrix(combinedData.federer[3:11])
 
-cor1 <- cor(combinedData[3:10])
+cor1 <- cor(combinedData.federer[3:11])
 round(cor1, 2)
 
 corrplot(cor1)
@@ -278,9 +282,9 @@ corrplot(cor1)
 # Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
 # and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
 
-federerFinal <- select(combinedData, Date, Wins, Aces, Defaults, ServePoints, BreakPointsSaved)
+federerFinal <- select(combinedData.federer, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved, Duration)
 
-cor2 <- cor(federerFinal[3:6])
+cor2 <- cor(federerFinal[3:7])
 round(cor2, 2)
 
 corrplot(cor2)
@@ -310,13 +314,9 @@ federer.test <- federerFinal[67:132,]
 ```{r Arima Model}
 set.seed(2021)
 library(forecast)
-plot(ts(djokovic.train[2]))
-acf(ts(djokovic.train[2]))
-pacf(ts(djokovic.train[2]))
 arima.fit.djokovic <- Arima(ts(djokovic.train[2]), order = c(1,1,0))
 set.seed(2021)
-arima.auto.fit <- auto.arima(ts(djokovic.train[2]), approximation = FALSE, stepwise = FALSE)
-
+arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FALSE)
 
 
 
@@ -332,52 +332,39 @@ adf.test(djokovicWinAces_ts) #djokovicWinAces_ts is stationary
 adf.test(djokovicWinBPSaved_ts) #also stationary
 # When two variables are stationary, linear regression model is appropriate. VAR can also be used.
 
-po.test(cbind(djokovicWinner_ts, djokovicWinAces_ts))
-po.test(cbind(djokovicWinner_ts, djokovicWinBPSaved_ts))
+po.test(cbind(djokovicWinner_ts, djokovicWinAces_ts, djokovicWinBPSaved_ts))
 # The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
 # The two variables contain common stochastic trends.
 
-djo.lm1 <- lm(djokovicFinal$Wins ~ djokovicFinal$Aces)
-summary(djo.lm1)
+djo.lm <- lm(djokovicFinal$Wins ~ djokovicFinal$Aces + djokovicFinal$BreakPointsSaved)
+summary(djo.lm)
 ## If Djokovic increases his Ace by 1, his winner would go up by 0.42.
-djo.lm2 <- lm(djokovicFinal$Wins ~ djokovicFinal$BreakPointsSaved)
-summary(djo.lm2)
+#djo.lm2 <- lm(djokovicFinal$Wins ~ djokovicFinal$BreakPointsSaved)
+#summary(djo.lm2)
 ## If Djokovic increases his number of BPsaved in the month by 1, his winner would go up by 0.51.
 djo.res <- resid(djo.lm)
 acf(djo.res) # white noise which means model is a good fit
 pacf(djo.res)
-djo.res2 <- resid(djo.lm2)
-acf(djo.res2) # white noise which means model is a good fit
-pacf(djo.res2)
+#djo.res2 <- resid(djo.lm2)
+#acf(djo.res2) # white noise which means model is a good fit
+#pacf(djo.res2)
 
 
 library(vars)
-djo.var <- VAR(cbind(djokovicWinner_ts, djokovicWinAces_ts), p = 3, type = "trend")
-coef(djo.var) #lag3 not significant
-djo.var <- VAR(cbind(djokovicWinner_ts, djokovicWinAces_ts), p = 2, type = "trend")
+djo.var <- VAR(cbind(djokovicWinner_ts, djokovicWinAces_ts, djokovicWinBPSaved_ts), p = 3, type = "trend")
 coef(djo.var)
-djo.var2 <- VAR(cbind(djokovicWinner_ts, djokovicWinBPSaved_ts), p = 3, type = "trend")
-coef(djo.var2)
-# if winners goes up 1 last two months, the winner this month would go up by 0.32.
-# if ace goes up by 1 last 2 months, aces would go up by 0.38.
 acf(resid(djo.var)[, 1]) #white noise
 acf(resid(djo.var)[, 2]) #white noise
-acf(resid(djo.var2)[, 1]) #white noise
-acf(resid(djo.var2)[, 2]) #white noise
+acf(resid(djo.var)[, 3]) #white noise
 # this confirms that this is a good model to use
 djo.pred <- predict(djo.var, n.ahead = 12)
 djo.pred
 djoWin.pred <- ts(djo.pred$fcst$djokovicWinner_ts[, 1], st = 2021, fr = 12)
 djoAces.pred <- ts(djo.pred$fcst$djokovicWinAces_ts[, 1], st = 2021, fr = 12)
+djoBP.pred <- ts(djo.pred$fcst$djokovicWinBPSaved_ts[, 1], st = 2021, fr = 12)
 ts.plot(cbind(window(djokovicWinner_ts, start = 2010), djoWin.pred), lty = 1:2)
 ts.plot(cbind(window(djokovicWinAces_ts, start = 2010), djoAces.pred), lty = 1:2)
-
-djo.pred2 <- predict(djo.var2, n.ahead = 12)
-djo.pred2
-djoWin.pred2 <- ts(djo.pred2$fcst$djokovicWinner_ts[, 1], st = 2021, fr = 12)
-djoBP.pred2 <- ts(djo.pred2$fcst$djokovicWinBPSaved_ts[, 1], st = 2021, fr = 12)
-ts.plot(cbind(window(djokovicWinner_ts, start = 2010), djoWin.pred2), lty = 1:2)
-ts.plot(cbind(window(djokovicWinBPSaved_ts, start = 2010), djoBP.pred2), lty = 1:2)
+ts.plot(cbind(window(djokovicWinBPSaved_ts, start = 2010), djoBP.pred), lty = 1:2)
 
 
 ```
@@ -389,52 +376,39 @@ adf.test(federerWinAces_ts) #federerWinAces_ts is stationary
 adf.test(federerWinDF_ts) #also stationary
 adf.test(federerWinBPSaved_ts) #also stationary
 # When two variables are stationary, linear regression model is appropriate. VAR can also be used.
-po.test(cbind(federerWinner_ts, federerWinAces_ts))
-po.test(cbind(federerWinner_ts, federerWinBPSaved_ts))
+po.test(cbind(federerWinner_ts, federerWinAces_ts, federerWinBPSaved_ts))
 # The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
-# The two variables contain common stochastic trends.
+# The variables contain common stochastic trends.
 
-fed.lm <- lm(federerFinal$Wins ~ federerFinal$Aces)
+fed.lm <- lm(federerFinal$Wins ~ federerFinal$Aces + federerFinal$BreakPointsSaved)
 summary(fed.lm)
-## If Federer increases his Ace by 1, his winner would go up by 0.2.
-fed.lm2 <- lm(federerFinal$Wins ~ federerWinBPSaved_ts)
-summary(fed.lm2)
-## If Federer increases his number of BPsaved in the month by 1, his winner would go up by 0.56.
+## If federer increases his Ace by 1, his winner would go up by 0.42.
+#fed.lm2 <- lm(federerFinal$Wins ~ federerFinal$BreakPointsSaved)
+#summary(fed.lm2)
+## If federer increases his number of BPsaved in the month by 1, his winner would go up by 0.51.
 fed.res <- resid(fed.lm)
 acf(fed.res) # white noise which means model is a good fit
 pacf(fed.res)
-fed.res2 <- resid(fed.lm2)
-acf(fed.res2) # white noise which means model is a good fit
-pacf(fed.res2)
+#fed.res2 <- resid(fed.lm2)
+#acf(fed.res2) # white noise which means model is a good fit
+#pacf(fed.res2)
 
 
 library(vars)
-fed.var <- VAR(cbind(federerWinner_ts, federerWinAces_ts), p = 3, type = "trend")
-coef(fed.var) #lag3 not significant
-fed.var <- VAR(cbind(federerWinner_ts, federerWinAces_ts), p = 2, type = "trend")
+fed.var <- VAR(cbind(federerWinner_ts, federerWinAces_ts, federerWinBPSaved_ts), p = 3, type = "trend")
 coef(fed.var)
-fed.var2 <- VAR(cbind(federerWinner_ts, federerWinBPSaved_ts), p = 3, type = "trend")
-coef(fed.var2)
-# if winners goes up 1 last two months, the winner this month would go up by 0.32.
-# if ace goes up by 1 last 2 months, aces would go up by 0.38.
 acf(resid(fed.var)[, 1]) #white noise
 acf(resid(fed.var)[, 2]) #white noise
-acf(resid(fed.var2)[, 1]) #white noise
-acf(resid(fed.var2)[, 2]) #white noise
+acf(resid(fed.var)[, 3]) #white noise
 # this confirms that this is a good model to use
 fed.pred <- predict(fed.var, n.ahead = 12)
 fed.pred
 fedWin.pred <- ts(fed.pred$fcst$federerWinner_ts[, 1], st = 2021, fr = 12)
 fedAces.pred <- ts(fed.pred$fcst$federerWinAces_ts[, 1], st = 2021, fr = 12)
+fedBP.pred <- ts(fed.pred$fcst$federerWinBPSaved_ts[, 1], st = 2021, fr = 12)
 ts.plot(cbind(window(federerWinner_ts, start = 2010), fedWin.pred), lty = 1:2)
 ts.plot(cbind(window(federerWinAces_ts, start = 2010), fedAces.pred), lty = 1:2)
-
-fed.pred2 <- predict(fed.var2, n.ahead = 12)
-fed.pred2
-fedWin.pred2 <- ts(fed.pred2$fcst$federerWinner_ts[, 1], st = 2021, fr = 12)
-fedBP.pred2 <- ts(fed.pred2$fcst$federerWinBPSaved_ts[, 1], st = 2021, fr = 12)
-ts.plot(cbind(window(federerWinner_ts, start = 2010), fedWin.pred2), lty = 1:2)
-ts.plot(cbind(window(federerWinBPSaved_ts, start = 2010), fedBP.pred2), lty = 1:2)
+ts.plot(cbind(window(federerWinBPSaved_ts, start = 2010), fedBP.pred), lty = 1:2)
 
 
 ```
@@ -445,58 +419,45 @@ adf.test(nadalWinner_ts) #nadalWinner_ts is stationary
 adf.test(nadalWinAces_ts) #nadalWinAces_ts is stationary
 adf.test(nadalWinBPSaved_ts) #also stationary
 # When two variables are stationary, linear regression model is appropriate. VAR can also be used.
-po.test(cbind(nadalWinner_ts, nadalWinAces_ts))
-po.test(cbind(nadalWinner_ts, nadalWinBPSaved_ts))
+po.test(cbind(nadalWinner_ts, nadalWinAces_ts, nadalWinBPSaved_ts))
 # The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
 # The two variables contain common stochastic trends.
 
-nad.lm <- lm(nadalFinal$Wins ~ nadalFinal$Aces)
+
+nad.lm <- lm(nadalFinal$Wins ~ nadalFinal$Aces + nadalFinal$BreakPointsSaved)
 summary(nad.lm)
-## If Nadal increases his Ace by 1, his winner would go up by 0.23.
-nad.lm2 <- lm(nadalFinal$Wins ~ nadalWinBPSaved_ts)
-summary(nad.lm2)
-## If Nadal increases his number of BPsaved in the month by 1, his winner would go up by 0.59.
+## If nadal increases his Ace by 1, his winner would go up by 0.42.
+#nad.lm2 <- lm(nadalFinal$Wins ~ nadalFinal$BreakPointsSaved)
+#summary(nad.lm2)
+## If nadal increases his number of BPsaved in the month by 1, his winner would go up by 0.51.
 nad.res <- resid(nad.lm)
 acf(nad.res) # white noise which means model is a good fit
 pacf(nad.res)
-nad.res2 <- resid(nad.lm2)
-acf(nad.res2) # white noise which means model is a good fit
-pacf(nad.res2)
+#nad.res2 <- resid(nad.lm2)
+#acf(nad.res2) # white noise which means model is a good fit
+#pacf(nad.res2)
 
 
 library(vars)
-nad.var <- VAR(cbind(nadalWinner_ts, nadalWinAces_ts), p = 3, type = "trend")
-coef(nad.var) #lag3 not significant
-nad.var <- VAR(cbind(nadalWinner_ts, nadalWinAces_ts), p = 2, type = "trend")
+nad.var <- VAR(cbind(nadalWinner_ts, nadalWinAces_ts, nadalWinBPSaved_ts), p = 3, type = "trend")
 coef(nad.var)
-nad.var2 <- VAR(cbind(nadalWinner_ts, nadalWinBPSaved_ts), p = 3, type = "trend")
-coef(nad.var2)
-# if winners goes up 1 last two months, the winner this month would go up by 0.32.
-# if ace goes up by 1 last 2 months, aces would go up by 0.38.
 acf(resid(nad.var)[, 1]) #white noise
 acf(resid(nad.var)[, 2]) #white noise
-acf(resid(nad.var2)[, 1]) #white noise
-acf(resid(nad.var2)[, 2]) #white noise
+acf(resid(nad.var)[, 3]) #white noise
 # this confirms that this is a good model to use
 nad.pred <- predict(nad.var, n.ahead = 12)
 nad.pred
 nadWin.pred <- ts(nad.pred$fcst$nadalWinner_ts[, 1], st = 2021, fr = 12)
 nadAces.pred <- ts(nad.pred$fcst$nadalWinAces_ts[, 1], st = 2021, fr = 12)
+nadBP.pred <- ts(nad.pred$fcst$nadalWinBPSaved_ts[, 1], st = 2021, fr = 12)
 ts.plot(cbind(window(nadalWinner_ts, start = 2010), nadWin.pred), lty = 1:2)
 ts.plot(cbind(window(nadalWinAces_ts, start = 2010), nadAces.pred), lty = 1:2)
-
-nad.pred2 <- predict(nad.var2, n.ahead = 12)
-nad.pred2
-nadWin.pred2 <- ts(nad.pred2$fcst$nadalWinner_ts[, 1], st = 2021, fr = 12)
-nadBP.pred2 <- ts(nad.pred2$fcst$nadalWinBPSaved_ts[, 1], st = 2021, fr = 12)
-ts.plot(cbind(window(nadalWinner_ts, start = 2010), nadWin.pred2), lty = 1:2)
-ts.plot(cbind(window(nadalWinBPSaved_ts, start = 2010), nadBP.pred2), lty = 1:2)
+ts.plot(cbind(window(nadalWinBPSaved_ts, start = 2010), nadBP.pred), lty = 1:2)
 
 
 
 
 ```
-
 
 ```{r regression}
 ts.df = ts(cbind(djo=djokovicFinal[,2:6],nad=nadalFinal[,2:6],fed=federerFinal[,2:6]), start = c(substr(range(djokovicFinal$Date)[1],1,4),substr(range(djokovicFinal$Date)[1],6,7)), end=c(substr(range(djokovicFinal$Date)[2],1,4),substr(range(djokovicFinal$Date)[2],6,7)), frequency = 12)
@@ -511,6 +472,7 @@ summary(lm_nad)
 lm_fed = lm(ts.df[,11] ~ ts.df[,12]+ts.df[,13]+ts.df[,14]+ts.df[,15])
 summary(lm_fed)
 ```
+
 ```{r ariMA}
 plot(ts.df[,1])
 djo.pre = window(ts.df[,1],c(2010,1),c(2019,12))
@@ -557,9 +519,3 @@ djo.pred
 ts.plot(cbind(djo.pre, djo.pred), lty = c(1,9), col=c("black","red") )
 ts.plot(cbind(djo.pre, djo.pred, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
 ```
-```{r}
-#Moving average model
-
-```
-
-
