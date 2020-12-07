@@ -48,10 +48,10 @@ djokovic  = subset(top3_aggr, winner_name == "Novak Djokovic")
 nadal  = subset(top3_aggr, winner_name == "Rafael Nadal")
 federer  = subset(top3_aggr, winner_name == "Roger Federer")
 df = data.frame(time = djokovic$time, djo.win = djokovic$total_wins, djo.ace = djokovic$total_win_aces, djo.bps = djokovic$total_win_bpSaved, nad.win = nadal$total_wins, nad.ace = nadal$total_win_aces, nad.bps = nadal$total_win_bpSaved, fed.win = federer$total_wins, fed.ace = federer$total_win_aces, fed.bps = federer$total_win_bpSaved)
-df = na_replace(df, 0)
+df = na_replace(df, 0.1)
 ts.df = ts(df,start = 2010.25, end = 2020.75, fr = 4)
 library("imputeTS")
-ts.df = na_replace(ts.df, 0)
+ts.df = na_replace(ts.df, 0.1)
 
 #djo
 plot(ts.df[,"djo.win"])
@@ -100,53 +100,112 @@ pacf(ts.df[,"fed.win"])
 
 ```{r Djokovic Regression & VAR}
 ## DJOKOVIC
-adf.test(ts.df[,"djo.win"]) #djokovicWinner_ts is stationary
-adf.test(ts.df[,"djo.ace"]) #djokovicWinAces_ts is stationary
-adf.test(ts.df[,"djo.bps"]) #also stationary
-# When two variables are stationary, linear regression model is appropriate. VAR can also be used.
+adf.test(ts.df[,"djo.win"]) 
+adf.test(ts.df[,"djo.ace"]) 
+adf.test(ts.df[,"djo.bps"]) 
+
 
 po.test(ts.df[,2:4])
-# The Phillips-Ouliaris test shows there is evidence that the series are cointegrated, which justifies the use of a regression model.
-# The two variables contain common stochastic trends.
+
 
 djo.lm <- lm(ts.df[,"djo.win"] ~ ts.df[,"djo.ace"] + ts.df[,"djo.bps"])
 summary(djo.lm)
-## If Djokovic increases his Ace by 1, his winner would go up by 0.42.
-#djo.lm2 <- lm(djokovicFinal$Wins ~ djokovicFinal$BreakPointsSaved)
-#summary(djo.lm2)
-## If Djokovic increases his number of BPsaved in the month by 1, his winner would go up by 0.51.
+
 djo.res <- resid(djo.lm)
-acf(djo.res) # white noise which means model is a good fit
+acf(djo.res) 
 pacf(djo.res)
-#djo.res2 <- resid(djo.lm2)
-#acf(djo.res2) # white noise which means model is a good fit
-#pacf(djo.res2)
+
 
 
 library(vars)
-djo.var <- VAR(ts.df[,2:4], p = 3, type = "trend")
+djo.var <- VAR(ts.df[1:37,2:4], p = 3, type = "trend")
 coef(djo.var)
-acf(resid(djo.var)[, 1]) #white noise
-acf(resid(djo.var)[, 2]) #white noise
-acf(resid(djo.var)[, 3]) #white noise
-# this confirms that this is a good model to use
-djo.pred <- predict(djo.var, n.ahead = 4)
+acf(resid(djo.var)[, 1]) 
+acf(resid(djo.var)[, 2]) 
+acf(resid(djo.var)[, 3]) 
+
+djo.pred <- predict(djo.var, n.ahead = 6)
 djo.pred
-djoWin.pred <- ts(djo.pred$fcst$djo.win[, 1], st = 2021, fr = 4)
-djoAces.pred <- ts(djo.pred$fcst$djo.ace[, 1], st = 2021, fr = 4)
-djoBP.pred <- ts(djo.pred$fcst$djo.bps[, 1], st = 2021, fr = 4)
-ts.plot(cbind(window(ts.df[,"djo.win"], start = 2010), djoWin.pred), lty = 1:2)
-ts.plot(cbind(window(ts.df[,"djo.ace"], start = 2010), djoAces.pred), lty = 1:2)
-ts.plot(cbind(window(ts.df[,"djo.bps"], start = 2010), djoBP.pred), lty = 1:2)
-
-```
-
-```{r Federer Regression & VAR}
-
+djoWin.pred <- ts(djo.pred$fcst$djo.win[, 1], st = 2019.50, fr = 4)
+djoAces.pred <- ts(djo.pred$fcst$djo.ace[, 1], st = 2019.50, fr = 4)
+djoBP.pred <- ts(djo.pred$fcst$djo.bps[, 1], st = 2019.50, fr = 4)
+ts.plot(cbind(ts.df[,"djo.win"], djoWin.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(ts.df[,"djo.ace"], djoAces.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(ts.df[,"djo.bps"], djoBP.pred), lty = c(1,9), col=c("black","red") )
+mape.djo.var = mean(abs(ts.df[38:43,"djo.win"] - djoWin.pred)/ts.df[38:43,"djo.win"])
 
 ```
 
 ```{r Nadal Regression & VAR}
+adf.test(ts.df[,"nad.win"]) 
+adf.test(ts.df[,"nad.ace"]) 
+adf.test(ts.df[,"nad.bps"]) 
+
+
+po.test(ts.df[,5:7])
+
+
+nad.lm <- lm(ts.df[,"nad.win"] ~ ts.df[,"nad.ace"] + ts.df[,"nad.bps"])
+summary(nad.lm)
+
+nad.res <- resid(nad.lm)
+acf(nad.res) 
+pacf(nad.res)
+
+
+
+library(vars)
+nad.var <- VAR(ts.df[1:37,5:7], p = 3, type = "trend")
+coef(nad.var)
+acf(resid(nad.var)[, 1]) 
+acf(resid(nad.var)[, 2]) 
+acf(resid(nad.var)[, 3]) 
+
+nad.pred <- predict(nad.var, n.ahead = 6)
+nad.pred
+nadWin.pred <- ts(nad.pred$fcst$nad.win[, 1], st = 2019.50, fr = 4)
+nadAces.pred <- ts(nad.pred$fcst$nad.ace[, 1], st = 2019.50, fr = 4)
+nadBP.pred <- ts(nad.pred$fcst$nad.bps[, 1], st = 2019.50, fr = 4)
+ts.plot(cbind(ts.df[,"nad.win"], nadWin.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(ts.df[,"nad.ace"], nadAces.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(ts.df[,"nad.bps"], nadBP.pred), lty = c(1,9), col=c("black","red") )
+mape.nad.var = mean(abs(ts.df[38:43,"nad.win"] - nadWin.pred)/ts.df[38:43,"nad.win"])
+
+
+```
+
+```{r Federer Regression & VAR}
+adf.test(ts.df[,"fed.win"]) 
+adf.test(ts.df[,"fed.ace"]) 
+adf.test(ts.df[,"fed.bps"])
+
+po.test(ts.df[,8:10])
+
+
+fed.lm <- lm(ts.df[,"fed.win"] ~ ts.df[,"fed.ace"] + ts.df[,"fed.bps"])
+summary(fed.lm)
+
+fed.res <- resid(fed.lm)
+acf(fed.res) 
+pacf(fed.res)
+
+
+library(vars)
+fed.var <- VAR(ts.df[1:37,8:10], p = 3, type = "trend")
+coef(fed.var)
+acf(resid(fed.var)[, 1]) 
+acf(resid(fed.var)[, 2]) 
+acf(resid(fed.var)[, 3]) 
+
+fed.pred <- predict(fed.var, n.ahead = 6)
+fed.pred
+fedWin.pred <- ts(fed.pred$fcst$fed.win[, 1], st = 2019.50, fr = 4)
+fedAces.pred <- ts(fed.pred$fcst$fed.ace[, 1], st = 2019.50, fr = 4)
+fedBP.pred <- ts(fed.pred$fcst$fed.bps[, 1], st = 2019.50, fr = 4)
+ts.plot(cbind(ts.df[,"fed.win"], fedWin.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(ts.df[,"fed.ace"], fedAces.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(ts.df[,"fed.bps"], fedBP.pred), lty = c(1,9), col=c("black","red") )
+mape.fed.var = mean(abs(ts.df[38:43,"fed.win"] - fedWin.pred)/ts.df[38:43,"fed.win"])
 
 ```
 
@@ -227,14 +286,14 @@ get.best.arima <- function(x.ts, maxord = c(1,1,1))
   list(best.aic, best.fit, best.model)
 }
 
-best.arima.nad<- get.best.arima(nad.pre, maxord = c(2,2,2))
+best.arima.nad<- get.best.arima(nad.pre, maxord = c(0,2,1))
 best.fit.nad <- best.arima.nad[[2]]
 acf( resid(best.fit.nad) )
 best.arima.nad [[3]]
 nad.pred = predict(best.fit.nad,6)$pred
 
 ts.plot(cbind(nad.pre, nad.pred, nad.post), lty = c(1,9,2), col=c("black","red","blue") )
-mape.nad.arima_202 = mean(abs(nad.post - nad.pred)/nad.post)
+mape.nad.arima_011 = mean(abs(nad.post - nad.pred)/nad.post)
 
 ```
 
