@@ -228,7 +228,8 @@ plot(ts.df[,"djo.win"])
 djo.pre = window(ts.df[,"djo.win"],2010.25,2019.25)
 djo.post = window(ts.df[,"djo.win"],2019.50,2020.75)
 djo.post[5] = 0.1
-
+acf(ts.df[,"djo.win"])
+pacf(ts.df[,"djo.win"])
 #Arima
 get.best.arima <- function(x.ts, maxord = c(1,1,1))
 {
