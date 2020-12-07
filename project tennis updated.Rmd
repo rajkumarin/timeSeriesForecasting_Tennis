@@ -36,8 +36,8 @@ tennis3 <- filter(Tennis, str_detect(winner_name, paste(top3, collapse="|"))|str
 
 tennis3 <- na.omit(tennis3)
 
-tennis3$year <- substring(tennis3$tourney_id, 1, 4)
-tennis3$month <- substring(tennis3$tourney_date, 5, 6)
+tennis3$year <- as.numeric(substring(tennis3$tourney_id, 1, 4))
+tennis3$month <- as.numeric(substring(tennis3$tourney_date, 5, 6))
 tennis3$grandslam <- ifelse(tennis3$tourney_level == "G", "grandslam", "non-grandslam")
 
 total_wins <- tennis3 %>% group_by(winner_name, year, month, surface, grandslam)%>%
@@ -118,15 +118,15 @@ top3_aggr <- left_join(top_3_w,top_3_l, by= "concat")
 djokovic  = subset(top3_aggr, winner_name == "Novak Djokovic")
 library(zoo)
 djokovic$date <- as.Date(with(djokovic, paste(year.x, month.x, "01", sep = "-")), "%Y-%m-%d")
-date.month= data.frame(seq(as.Date("2010-01-01"), length=132, by="months"))
-colnames(date.month)[1] <- "date"
-djokovic_withdate <- left_join(date.month,djokovic, by="date")
+date.month= data.frame(date = seq(as.Date("2010-01-01"), length=132, by="months"),winner_name = "Novak Djokovic")
+
+djokovic_withdate <- left_join(date.month,djokovic)
 summary(djokovic_withdate)
 
 djokovic_withdate[, 5]
 
 library("imputeTS")
-djokovic_withdate <- na_replace(djokovic_withdate, 0)
+djokovic_withdate <- na_replace(djokovic_withdate, 0.01)
 djokovicWinner_ts <- ts(djokovic_withdate[,5], start = 2010, freq = 12)
 djokovicWinAces_ts <- ts(djokovic_withdate[,7], start = 2010, freq = 12)
 djokovicWinDF_ts <- ts(djokovic_withdate[,8], start = 2010, freq = 12)
@@ -186,7 +186,7 @@ summary(nadal_withdate)
 nadal_withdate[, 5]
 
 library("imputeTS")
-nadal_withdate <- na_replace(nadal_withdate, 0)
+nadal_withdate <- na_replace(nadal_withdate, 0.01)
 nadalWinner_ts <- ts(nadal_withdate[,5], start = 2010, freq = 12)
 nadalWinAces_ts <- ts(nadal_withdate[,7], start = 2010, freq = 12)
 nadalWinDF_ts <- ts(nadal_withdate[,8], start = 2010, freq = 12)
@@ -248,7 +248,7 @@ summary(federer_withdate)
 federer_withdate[, 5]
 
 library("imputeTS")
-federer_withdate <- na_replace(federer_withdate, 0)
+federer_withdate <- na_replace(federer_withdate, 0.01)
 federerWinner_ts <- ts(federer_withdate[,5], start = 2010, freq = 12)
 federerWinAces_ts <- ts(federer_withdate[,7], start = 2010, freq = 12)
 federerWinDF_ts <- ts(federer_withdate[,8], start = 2010, freq = 12)
@@ -367,6 +367,57 @@ ts.plot(cbind(window(djokovicWinAces_ts, start = 2010), djoAces.pred), lty = 1:2
 ts.plot(cbind(window(djokovicWinBPSaved_ts, start = 2010), djoBP.pred), lty = 1:2)
 
 
+```
+```{r mape}
+djo.var <- VAR(cbind(djokovicWinner_ts[1:120], djokovicWinAces_ts[1:120], djokovicWinBPSaved_ts[1:120]), p = 3, type = "trend")
+coef(djo.var)
+acf(resid(djo.var)[, 1]) #white noise
+acf(resid(djo.var)[, 2]) #white noise
+acf(resid(djo.var)[, 3]) #white noise
+# this confirms that this is a good model to use
+djo.pred <- predict(djo.var, n.ahead = 12)
+djo.pred
+djoWin.pred <- ts(djo.pred$fcst$y1[, 1], st = 2020, fr = 12)
+djoAces.pred <- ts(djo.pred$fcst$y2[, 1], st = 2020, fr = 12)
+djoBP.pred <- ts(djo.pred$fcst$y3[, 1], st = 2020, fr = 12)
+ts.plot(cbind(djokovicWinner_ts, djoWin.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(djokovicWinAces_ts, djoAces.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(djokovicWinBPSaved_ts, djoBP.pred), lty = c(1,9), col=c("black","red") )
+mape.djo.var = mean(abs(djokovicWinner_ts[121:132] - djoWin.pred)/djokovicWinner_ts[121:132])
+
+#nadal
+nad.var <- VAR(cbind(nadalWinner_ts[1:120], nadalWinAces_ts[1:120], nadalWinBPSaved_ts[1:120]), p = 3, type = "trend")
+coef(nad.var)
+acf(resid(nad.var)[, 1]) #white noise
+acf(resid(nad.var)[, 2]) #white noise
+acf(resid(nad.var)[, 3]) #white noise
+# this confirms that this is a good model to use
+nad.pred <- predict(nad.var, n.ahead = 12)
+nad.pred
+nadWin.pred <- ts(nad.pred$fcst$y1[, 1], st = 2020, fr = 12)
+nadAces.pred <- ts(nad.pred$fcst$y2[, 1], st = 2020, fr = 12)
+nadBP.pred <- ts(nad.pred$fcst$y3[, 1], st = 2020, fr = 12)
+ts.plot(cbind(nadalWinner_ts, nadWin.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(nadalWinAces_ts, nadAces.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(nadalWinBPSaved_ts, nadBP.pred), lty = c(1,9), col=c("black","red") )
+mape.nad.var = mean(abs(nadalWinner_ts[121:132] - nadWin.pred)/nadalWinner_ts[121:132])
+
+#feder
+fed.var <- VAR(cbind(federerWinner_ts[1:120], federerWinAces_ts[1:120], federerWinBPSaved_ts[1:120]), p = 3, type = "trend")
+coef(fed.var)
+acf(resid(fed.var)[, 1]) #white noise
+acf(resid(fed.var)[, 2]) #white noise
+acf(resid(fed.var)[, 3]) #white noise
+# this confirms that this is a good model to use
+fed.pred <- predict(fed.var, n.ahead = 12)
+fed.pred
+fedWin.pred <- ts(fed.pred$fcst$y1[, 1], st = 2020, fr = 12)
+fedAces.pred <- ts(fed.pred$fcst$y2[, 1], st = 2020, fr = 12)
+fedBP.pred <- ts(fed.pred$fcst$y3[, 1], st = 2020, fr = 12)
+ts.plot(cbind(federerWinner_ts, fedWin.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(federerWinAces_ts, fedAces.pred), lty = c(1,9), col=c("black","red") )
+ts.plot(cbind(federerWinBPSaved_ts, fedBP.pred), lty = c(1,9), col=c("black","red") )
+mape.fed.var = mean(abs(federerWinner_ts[121:132] - fedWin.pred)/federerWinner_ts[121:132])
 ```
 
 ```{r Federer Regression & VAR}
