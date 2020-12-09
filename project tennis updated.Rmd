@@ -144,10 +144,10 @@ combinedData.djokovic <- data.frame(djokovic_withdate$date, djokovicWinner_ts, d
 colnames(combinedData.djokovic) <- c("Date", "Wins", "Aces", "Doublefaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced", "Duration")
 head(combinedData.djokovic)
 
-plot(density(combinedData.djokovic$Wins))
+plot(density(combinedData.djokovic$Wins), main = "Distribution of Djokovic's monthly-wins")
 
 boxplot(combinedData.djokovic$Wins,combinedData.djokovic$Aces, combinedData.djokovic$Doublefaults, combinedData.djokovic$ServePoints, combinedData.djokovic$Duration)
-install.packages("corrplot")
+#install.packages("corrplot")
 library(corrplot)
 library(car)
 scatterplotMatrix(combinedData.djokovic[3:11])
@@ -161,7 +161,7 @@ corrplot(cor1)
 # Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
 # and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
 
-djokovicFinal <- select(combinedData.djokovic, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved,Duration)
+djokovicFinal <- dplyr::select(combinedData.djokovic, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved,Duration)
 
 cor2 <- cor(djokovicFinal[3:7])
 round(cor2, 2)
@@ -204,7 +204,7 @@ combinedData.nadal <- data.frame(nadal_withdate$date, nadalWinner_ts, nadalWinAc
 colnames(combinedData.nadal) <- c("Date", "Wins", "Aces", "Doublefaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced", "Duration")
 head(combinedData.nadal)
 
-plot(density(combinedData.nadal$Wins))
+plot(density(combinedData.nadal$Wins), main = "Distribution of Nadal's monthly-wins")
 
 boxplot(combinedData.nadal$Wins,combinedData.nadal$Aces, combinedData.nadal$Doublefaults, combinedData.nadal$ServePoints)
 #install.packages("corrplot")
@@ -223,12 +223,12 @@ corrplot(cor1)
 # and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
 
 library(dplyr)
-nadalFinal <- select(combinedData.nadal, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved, Duration)
+nadalFinal <- dplyr::select(combinedData.nadal, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved, Duration)
 
 cor2 <- cor(nadalFinal[3:7])
 round(cor2, 2)
 
-corrplot(cor2)
+corrplot(cor2, xlab = "Correlation b/w performance indices - Nadal")
 
 plot(decompose(nadalFinal$Wins))
 acf(nadalFinal$Wins)# Looks like we have AR(1)
@@ -266,7 +266,7 @@ combinedData.federer <- data.frame(federer_withdate$date, federerWinner_ts, fede
 colnames(combinedData.federer) <- c("Date", "Wins", "Aces", "Doublefaults", "ServePoints", "FirstServeIn", "FirstServeWon", "SecondServeWon", "BreakPointsSaved", "BreakPointsFaced", "Duration")
 head(combinedData.federer)
 
-plot(density(combinedData.federer$Wins))
+plot(density(combinedData.federer$Wins), main = "Distribution of Federer's monthly-wins")
 
 boxplot(combinedData.federer$Wins,combinedData.federer$Aces, combinedData.federer$Doublefaults, combinedData.federer$ServePoints)
 #install.packages("corrplot")
@@ -282,7 +282,7 @@ corrplot(cor1)
 # Dropping FirstServeIn, FirstServeWon, SecondServeWon since they are highlu correlated to ServePoints
 # and dropping BreakpointsFaced since it is highly correlated to BreakPointsSaved
 
-federerFinal <- select(combinedData.federer, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved, Duration)
+federerFinal <- dplyr::select(combinedData.federer, Date, Wins, Aces, Doublefaults, ServePoints, BreakPointsSaved, Duration)
 
 cor2 <- cor(federerFinal[3:7])
 round(cor2, 2)
@@ -316,7 +316,7 @@ set.seed(2021)
 library(forecast)
 arima.fit.djokovic <- Arima(ts(djokovic.train[2]), order = c(1,1,0))
 set.seed(2021)
-arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FALSE)
+arima.auto.fit <- auto.arima(ts(djokovic.train[2]), approximation = FALSE, stepwise = FALSE)
 
 
 
@@ -327,6 +327,7 @@ arima.auto.fit <- auto.arima(ts(train[2]), approximation = FALSE, stepwise = FAL
 
 ```{r Djokovic Regression & VAR}
 ## DJOKOVIC
+library(tseries)
 adf.test(djokovicWinner_ts) #djokovicWinner_ts is stationary
 adf.test(djokovicWinAces_ts) #djokovicWinAces_ts is stationary
 adf.test(djokovicWinBPSaved_ts) #also stationary
