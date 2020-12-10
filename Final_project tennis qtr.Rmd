@@ -65,7 +65,7 @@ federer  = subset(top3_aggr, winner_name == "Roger Federer")
 df = data.frame(time = djokovic$time, djo.win = djokovic$total_wins, nad.win = nadal$total_wins, fed.win = federer$total_wins)
 library("imputeTS")
 df = na_replace(df, 0.1)
-ts.df = ts(df,start = 2010.25, end = 2020.75, fr = 4)
+ts.df = ts(df,start = 2010.00, end = 2020.50, fr = 4)
 ts.df = na_replace(ts.df, 0.1)
 ts.plot(djo=ts.df[,"djo.win"],nad=ts.df[,"nad.win"],fed=ts.df[,"fed.win"],lty=c(1:3), col = c("red","blue","green"), ylab= "Wins");  legend("topright", legend = c("Djokovic","Nadal","Federer"), lty=c(1:3), col = c("red","blue","green"))
 #djo
@@ -209,8 +209,8 @@ summary(lm_fed)
 ```{r djo ariMA}
 #djo
 plot(ts.df[,"djo.win"])
-djo.pre = window(ts.df[,"djo.win"],2010.25,2019.25)
-djo.post = window(ts.df[,"djo.win"],2019.50,2020.75)
+djo.pre = window(ts.df[,"djo.win"],2010.00,2019.00)
+djo.post = window(ts.df[,"djo.win"],2019.25,2020.50)
 #djo.post[5] = 0.1
 acf(ts.df[,"djo.win"])
 pacf(ts.df[,"djo.win"])
@@ -241,82 +241,22 @@ djo.pred = predict(best.fit.djo,6)$pred
 
 ts.plot(cbind(djo.pre, djo.pred, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
 mape.djo.arima_211 = mean(abs(djo.post - djo.pred)/djo.post)
-
+mape = matrix(data = NA,9,7, dimnames = list(c("DJO_HW","DJO_ARMA","DJO_SARIMA","NAD_HW","NAD_ARMA","NAD_SARIMA","FED_HW","FED_ARMA","FED_SARIMA"),c("ME","RMSE","MAE","MPE","MAPE","ACF1","Theil's U")))
+library(forecast)
+mape["DJO_ARMA",]=accuracy(djo.pred,djo.post)
 ```
-```{r djo sariMA}
-#djo
-#sArima
-get.best.sarima <- function(x.ts, maxord = c(1,1,1,1,1,1))
-{
-  best.aic <- 1e8
-  n <- length(x.ts)
-  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
-    for (P in 0:maxord[4]) for(D in 0:maxord[5]) for(Q in 0:maxord[6])
-    {
-      fit <- arima(x.ts, order = c(p,d,q),
-                   seas = list(order = c(P,D,Q),
-                               frequency(x.ts)), method = "CSS")
-      fit.aic <- -2 * fit$loglik + (log(n) + 1) * length(fit$coef)
-      if (fit.aic < best.aic)
-      {
-        best.aic <- fit.aic
-        best.fit <- fit
-        best.model <- c(p,d,q,P,D,Q)
-      }
-      
-  best.aic <- Inf
-  n <- length(x.ts)
-  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
-    {
-      fit <- arima(x.ts, order = c(p,d,q))
-      fit.aic <- AIC(fit)
-      if (fit.aic < best.aic)
-      {
-        best.aic <- fit.aic
-        best.fit <- fit
-        best.model <- c(p,d,q)
-      }
-    }
-  list(best.aic, best.fit, best.model)
-}
 
-best.arima.djo<- get.best.arima(djo.pre, maxord = c(2,2,2))
-best.fit.djo <- best.arima.djo[[2]]
-acf( resid(best.fit.djo) )
-best.arima.djo [[3]]
-djo.pred = predict(best.fit.djo,6)$pred
 
-ts.plot(cbind(djo.pre, djo.pred, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
-mape.djo.arima_211 = mean(abs(djo.post - djo.pred)/djo.post)
-
-```
 
 ```{r nad ariMA}
 #nad
 plot(ts.df[,"nad.win"])
-nad.pre = window(ts.df[,"nad.win"],2010.25,2019.25)
-nad.post = window(ts.df[,"nad.win"],2019.50,2020.75)
+nad.pre = window(ts.df[,"nad.win"],2010.00,2019.00)
+nad.post = window(ts.df[,"nad.win"],2019.25,2020.50)
 #nad.post[5] = 0.1
 acf(ts.df[,"nad.win"])
 pacf(ts.df[,"nad.win"])
 #Arima
-get.best.arima <- function(x.ts, maxord = c(1,1,1))
-{
-  best.aic <- Inf
-  n <- length(x.ts)
-  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
-    {
-      fit <- arima(x.ts, order = c(p,d,q))
-      fit.aic <- AIC(fit)
-      if (fit.aic < best.aic)
-      {
-        best.aic <- fit.aic
-        best.fit <- fit
-        best.model <- c(p,d,q)
-      }
-    }
-  list(best.aic, best.fit, best.model)
-}
 
 best.arima.nad<- get.best.arima(nad.pre, maxord = c(0,2,1))
 best.fit.nad <- best.arima.nad[[2]]
@@ -326,35 +266,18 @@ nad.pred = predict(best.fit.nad,6)$pred
 
 ts.plot(cbind(nad.pre, nad.pred, nad.post), lty = c(1,9,2), col=c("black","red","blue") )
 mape.nad.arima_011 = mean(abs(nad.post - nad.pred)/nad.post)
-
+mape["NAD_ARMA",]=accuracy(nad.pred,nad.post)
 ```
 
 ```{r fed ariMA}
 #fed
 plot(ts.df[,"fed.win"])
-fed.pre = window(ts.df[,"fed.win"],2010.25,2018.75)
-fed.post = window(ts.df[,"fed.win"],2019.00,2020.25)
+fed.pre = window(ts.df[,"fed.win"],2010.00,2018.50)
+fed.post = window(ts.df[,"fed.win"],2018.75,2020.00)
 
 acf(ts.df[,"fed.win"])
 pacf(ts.df[,"fed.win"])
 #Arima
-get.best.arima <- function(x.ts, maxord = c(1,1,1))
-{
-  best.aic <- Inf
-  n <- length(x.ts)
-  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
-    {
-      fit <- arima(x.ts, order = c(p,d,q))
-      fit.aic <- AIC(fit)
-      if (fit.aic < best.aic)
-      {
-        best.aic <- fit.aic
-        best.fit <- fit
-        best.model <- c(p,d,q)
-      }
-    }
-  list(best.aic, best.fit, best.model)
-}
 
 best.arima.fed<- get.best.arima(fed.pre, maxord = c(2,2,2))
 best.fit.fed <- best.arima.fed[[2]]
@@ -364,25 +287,162 @@ fed.pred = predict(best.fit.fed,6)$pred
 
 ts.plot(cbind(fed.pre, fed.pred, fed.post), lty = c(1,9,2), col=c("black","red","blue") )
 mape.fed.arima_011 = mean(abs(fed.post - fed.pred)/fed.post)
-
+mape["FED_ARMA",]=accuracy(fed.pred,fed.post)
 ```
+```{r djo sariMA}
+#djo
+#sArima
+get.best.sarima <- function(x.ts, maxord = c(1,1,1,1,1,1))
+{
+  best.aic <- Inf
+  n <- length(x.ts)
+  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
+    for (P in 0:maxord[4]) for(D in 0:maxord[5]) for(Q in 0:maxord[6])
+    {
+      fit <- arima(x.ts, order = c(p,d,q),
+                   seas = list(order = c(P,D,Q),
+                               frequency(x.ts)), method = "CSS")
+      
+      fit.aic <- -2 * fit$loglik + (log(n) + 1) * length(fit$coef)
+      
+      if (fit.aic < best.aic)
+      {
+        best.aic <- fit.aic
+        best.fit <- fit
+        best.model <- c(p,d,q,P,D,Q)
+      }
+    }
+  list(best.aic, best.fit, best.model)
+}
+
+#djo
+best.sarima.djo<- get.best.sarima(djo.pre, maxord = c(2,2,2,2,2,2))
+best.fits.djo <- best.sarima.djo[[2]]
+acf( resid(best.fits.djo) )
+best.sarima.djo [[3]]
+djo.preds = predict(best.fits.djo,6)$pred
+
+ts.plot(cbind(djo.pre, djo.preds, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.djo.sarima = mean(abs(djo.post - djo.preds)/djo.post)
+library(forecast)
+mape["DJO_SARIMA",] = accuracy(djo.preds,djo.post)
+
+#nad
+best.sarima.nad<- get.best.sarima(nad.pre, maxord = c(2,2,2,2,2,2))
+best.fits.nad <- best.sarima.nad[[2]]
+acf( resid(best.fits.nad) )
+best.sarima.nad [[3]]
+nad.preds = predict(best.fits.nad,6)$pred
+
+ts.plot(cbind(nad.pre, nad.preds, nad.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.nad.sarima_211 = mean(abs(nad.post - nad.preds)/nad.post)
+mape["NAD_SARIMA",] = accuracy(nad.preds,nad.post)
+
+#fed
+best.sarima.fed<- get.best.sarima(fed.pre, maxord = c(2,2,2,2,2,2))
+best.fits.fed <- best.sarima.fed[[2]]
+acf( resid(best.fits.fed) )
+best.sarima.fed [[3]]
+fed.preds = predict(best.fits.fed,6)$pred
+
+ts.plot(cbind(fed.pre, fed.preds, fed.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.fed.sarima_211 = mean(abs(fed.post - fed.preds)/fed.post)
+mape["FED_SARIMA",] = accuracy(fed.preds,fed.post)
+```
+
 ```{r HoltWinters s-m}
 djo.hw = HoltWinters(djo.pre, seasonal = "m")
 djo.forc = predict(djo.hw,n.ahead = 6)
 ts.plot(cbind(djo.pre, djo.forc, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
-mape.djo.hw1 = accuracy(djo.forc,djo.post)
+mape["DJO_HW",] = accuracy(djo.forc,djo.post)
 mape.djo.hw = mean(abs(djo.post - djo.forc)/djo.post)
 #nad
 nad.hw = HoltWinters(nad.pre, seasonal = "m")
 nad.forc = predict(nad.hw,n.ahead = 6)
 ts.plot(cbind(nad.pre, nad.forc, nad.post), lty = c(1,9,2), col=c("black","red","blue") )
-mape.nad.hw1 = accuracy(nad.forc,nad.post)
+mape["NAD_HW",] = accuracy(nad.forc,nad.post)
 mape.nad.hw = mean(abs(nad.post - nad.forc)/nad.post)
 #fed
 fed.hw = HoltWinters(fed.pre, seasonal = "m")
 fed.forc = predict(fed.hw,n.ahead = 6)
 ts.plot(cbind(fed.pre, fed.forc, fed.post), lty = c(1,9,2), col=c("black","red","blue") )
-mape.fed.hw1 = accuracy(fed.forc,fed.post)
-mape.fed.hw = mean(abs(fed.post - fed.forc)/fed.post))
+mape["FED_HW",] = accuracy(fed.forc,fed.post)
+mape.fed.hw = mean(abs(fed.post - fed.forc)/fed.post)
+```
+
+
+```{r result}
+barplot(mape[,"RMSE"],col=colors()[c(21,81,21,21,81,21,21,81,21)])
+ts.plot(cbind(ts.df[,"djo.win"],ts.df[,"nad.win"],ts.df[,"fed.win"],djo.pred,nad.pred,fed.pred,djo.preds,nad.preds,fed.preds,djo.forc,nad.forc,fed.forc), lty = c(1,1,1,9,9,9,2,2,2,3,3,3), col=c("black","red","blue","black","red","blue","black","red","blue","black","red","blue") )
+
+ts.plot(cbind(ts.df[,"djo.win"],djo.pred,djo.preds,djo.forc), lty = c(1,2,9,3), col=c("black","green","red","blue"), main = "Djokovic Wins forecast" ); legend("topleft", legend = c("Real-world","ARIMA_211","SARIMA","HoltWinters"), lty=c(1,2,9,3), col = c("black","green","red","blue"))
+
+ts.plot(cbind(ts.df[,"nad.win"],nad.pred,nad.preds,nad.forc), lty = c(1,2,9,3), col=c("black","green","red","blue"),main = "Nadal Wins forecast" ); legend("topleft", legend = c("Real-world","ARIMA_011","SARIMA","HoltWinters"), lty=c(1,2,9,3), col = c("black","green","red","blue"))
+
+ts.plot(cbind(ts.df[,"fed.win"],fed.pred,fed.preds,fed.forc), lty = c(1,2,9,3), col=c("black","green","red","blue") ,main = "Federer Wins forecast"); legend("topleft", legend = c("Real-world","ARIMA_011","SARIMA","HoltWinters"), lty=c(1,2,9,3), col = c("black","green","red","blue"))
+
+fed.pred1 = predict(best.fit.fed,8)$pred
+
+ts.plot(cbind(djo.pred,nad.pred,fed.pred1[3:8]), lty = c(1,2,9), col=c("green","red","blue") ,main = "Winner"); legend("topleft", legend = c("Djokovic","Nadal","Federer"), lty=c(1,2,9), col = c("green","red","blue"))
+
+sum(djo.pred)
+sum(nad.pred)
+sum(fed.pred)
+
+t.test(djo.pred, nad.pred)
+```
+
+```{r 2021}
+djo.2021 = predict(arima(ts.df[,"djo.win"], order = c(2,1,1)),4)$pred
+nad.2021 = predict(arima(ts.df[,"nad.win"], order = c(0,1,1)),4)$pred
+fed.2021 = predict(arima(ts.df[,"fed.win"], order = c(0,1,1)),4)$pred
+
+ts.plot(cbind(djo.2021,nad.2021,fed.2021), lty = c(1,2,9), col=c("green","red","blue") ,main = "Winner"); legend("topright", legend = c("Djokovic","Nadal","Federer"), lty=c(1,2,9), col = c("green","red","blue"))
+
+t.test(djo.2021, nad.2021)
+
+```
+
+```{r dVn}
+ts.dvn = ts.df[,"djo.win"]-ts.df[,"nad.win"]
+ts.plot(ts.dvn)
+plot(decompose(ts.dvn))
+dvn.pre = window(ts.dvn,2010.00,2019.00)
+dvn.post = window(ts.dvn,2019.25,2020.50)
+
+#HW
+dvn.hw = HoltWinters(dvn.pre, seasonal = "a")
+dvn.forc = predict(dvn.hw,n.ahead = 6)
+ts.plot(cbind(dvn.pre, dvn.forc, dvn.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.dvn.hw = mean(abs(dvn.post - dvn.forc)/dvn.post)
+accuracy(dvn.forc, dvn.post)
+
+#Arima
+best.arima.dvn<- get.best.arima(dvn.pre, maxord = c(0,2,1))
+best.fit.dvn <- best.arima.dvn[[2]]
+acf( resid(best.fit.dvn) )
+best.arima.dvn [[3]]
+dvn.pred = predict(best.fit.dvn,6)$pred
+
+ts.plot(cbind(dvn.pre, dvn.pred, dvn.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.dvn.arima_011 = mean(abs(dvn.post - dvn.pred)/dvn.post)
+accuracy(dvn.pred, dvn.post)
+
+#sarima
+best.sarima.dvn<- get.best.sarima(dvn.pre, maxord = c(2,2,2,2,2,2))
+best.fits.dvn <- best.sarima.dvn[[2]]
+acf( resid(best.fits.dvn) )
+best.sarima.dvn [[3]]
+dvn.preds = predict(best.fits.dvn,6)$pred
+ts.plot(cbind(dvn.pre, dvn.preds, dvn.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.dvn.sarima_211 = mean(abs(dvn.post - dvn.preds)/dvn.post)
+accuracy(dvn.preds,dvn.post)
+
+dvn.2021 = predict(HoltWinters(ts.dvn, seasonal = "a"),n.ahead = 4)
+zero = dvn.2021
+zero[1:4]=0
+t.test(dvn.2021, zero)
+ts.plot(cbind(ts.dvn, dvn.2021), lty = c(1,9), col=c("black","blue"), main= "Difference in number of wins for Djokovic and Nadal (Holtwinters)" )
+
 ```
 
