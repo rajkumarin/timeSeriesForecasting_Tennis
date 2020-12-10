@@ -52,10 +52,7 @@ nrow(tennis3)
 
 tennis3$time <- as.numeric(substring(tennis3$tourney_date, 1, 4)) + 0.25*(ceiling(as.numeric(substring(tennis3$tourney_date, 5, 6))/3))
 
-total_w <- tennis3 %>% group_by(winner_name, time)%>%
-  summarize(total_wins = n(),
-            total_win_aces = mean(w_ace),
-            total_win_bpSaved = mean(w_bpSaved))
+total_w <- tennis3 %>% group_by(winner_name, time)%>%summarize(total_wins = n())
 qtr = expand.grid(time = seq(2010.25,2020.75, 0.25 ),winner_name = top3)
 top3_aggr = left_join(qtr,total_w)
 
@@ -65,7 +62,7 @@ top3_aggr = left_join(qtr,total_w)
 djokovic  = subset(top3_aggr, winner_name == "Novak Djokovic")
 nadal  = subset(top3_aggr, winner_name == "Rafael Nadal")
 federer  = subset(top3_aggr, winner_name == "Roger Federer")
-df = data.frame(time = djokovic$time, djo.win = djokovic$total_wins, djo.ace = djokovic$total_win_aces, djo.bps = djokovic$total_win_bpSaved, nad.win = nadal$total_wins, nad.ace = nadal$total_win_aces, nad.bps = nadal$total_win_bpSaved, fed.win = federer$total_wins, fed.ace = federer$total_win_aces, fed.bps = federer$total_win_bpSaved)
+df = data.frame(time = djokovic$time, djo.win = djokovic$total_wins, nad.win = nadal$total_wins, fed.win = federer$total_wins)
 library("imputeTS")
 df = na_replace(df, 0.1)
 ts.df = ts(df,start = 2010.25, end = 2020.75, fr = 4)
@@ -74,15 +71,7 @@ ts.plot(djo=ts.df[,"djo.win"],nad=ts.df[,"nad.win"],fed=ts.df[,"fed.win"],lty=c(
 #djo
 plot(ts.df[,"djo.win"])
 plot(density(df$djo.win))
-boxplot(df$djo.win,df$djo.ace,df$djo.bps)
-library(corrplot)
-library(car)
-scatterplotMatrix(df[,2:4])
-
-cor1 <- cor(df[,2:4])
-round(cor1, 2)
-corrplot(cor1)
-
+boxplot(df$djo.win)
 plot(decompose(ts.df[,"djo.win"]))
 acf(ts.df[,"djo.win"])
 pacf(ts.df[,"djo.win"])
@@ -90,13 +79,7 @@ pacf(ts.df[,"djo.win"])
 #nad
 plot(ts.df[,"nad.win"])
 plot(density(df$nad.win))
-boxplot(df$nad.win,df$nad.ace,df$nad.bps)
-scatterplotMatrix(df[,5:7])
-
-cor1 <- cor(df[,5:7])
-round(cor1, 2)
-corrplot(cor1)
-
+boxplot(df$nad.win)
 plot(decompose(ts.df[,"nad.win"]))
 acf(ts.df[,"nad.win"])
 pacf(ts.df[,"nad.win"])
@@ -104,29 +87,19 @@ pacf(ts.df[,"nad.win"])
 #fed
 plot(ts.df[,"fed.win"])
 plot(density(df$fed.win))
-boxplot(df$fed.win,df$fed.ace,df$fed.bps)
-scatterplotMatrix(df[,8:10])
-
-cor1 <- cor(df[,8:10])
-round(cor1, 2)
-corrplot(cor1)
-
+boxplot(df$fed.win)
 plot(decompose(ts.df[,"fed.win"]))
 acf(ts.df[,"fed.win"])
 pacf(ts.df[,"fed.win"])
 ```
 
-```{r Djokovic Regression & VAR}
+```{r Djokovic Regression & VAR, eval=FALSE, include=FALSE}
 ## DJOKOVIC
 adf.test(ts.df[,"djo.win"]) 
-adf.test(ts.df[,"djo.ace"]) 
-adf.test(ts.df[,"djo.bps"]) 
-
-
 po.test(ts.df[,2:4])
 
 
-djo.lm <- lm(ts.df[,"djo.win"] ~ ts.df[,"djo.ace"] + ts.df[,"djo.bps"])
+djo.lm <- lm(ts.df[,"djo.win"])
 summary(djo.lm)
 
 djo.res <- resid(djo.lm)
@@ -134,27 +107,20 @@ acf(djo.res)
 pacf(djo.res)
 
 
-
 library(vars)
-djo.var <- VAR(ts.df[1:37,2:4], p = 3, type = "trend")
+djo.var <- VAR(ts.df[1:37,2], p = 3, type = "trend")
 coef(djo.var)
 acf(resid(djo.var)[, 1]) 
-acf(resid(djo.var)[, 2]) 
-acf(resid(djo.var)[, 3]) 
 
 djo.pred <- predict(djo.var, n.ahead = 6)
 djo.pred
 djoWin.pred <- ts(djo.pred$fcst$djo.win[, 1], st = 2019.50, fr = 4)
-djoAces.pred <- ts(djo.pred$fcst$djo.ace[, 1], st = 2019.50, fr = 4)
-djoBP.pred <- ts(djo.pred$fcst$djo.bps[, 1], st = 2019.50, fr = 4)
 ts.plot(cbind(ts.df[,"djo.win"], djoWin.pred), lty = c(1,9), col=c("black","red") )
-ts.plot(cbind(ts.df[,"djo.ace"], djoAces.pred), lty = c(1,9), col=c("black","red") )
-ts.plot(cbind(ts.df[,"djo.bps"], djoBP.pred), lty = c(1,9), col=c("black","red") )
 mape.djo.var = mean(abs(ts.df[38:43,"djo.win"] - djoWin.pred)/ts.df[38:43,"djo.win"])
 
 ```
 
-```{r Nadal Regression & VAR}
+```{r Nadal Regression & VAR, eval=FALSE, include=FALSE}
 adf.test(ts.df[,"nad.win"]) 
 adf.test(ts.df[,"nad.ace"]) 
 adf.test(ts.df[,"nad.bps"]) 
@@ -192,7 +158,7 @@ mape.nad.var = mean(abs(ts.df[38:43,"nad.win"] - nadWin.pred)/ts.df[38:43,"nad.w
 
 ```
 
-```{r Federer Regression & VAR}
+```{r Federer Regression & VAR, eval=FALSE, include=FALSE}
 adf.test(ts.df[,"fed.win"]) 
 adf.test(ts.df[,"fed.ace"]) 
 adf.test(ts.df[,"fed.bps"])
@@ -227,7 +193,7 @@ mape.fed.var = mean(abs(ts.df[38:43,"fed.win"] - fedWin.pred)/ts.df[38:43,"fed.w
 
 ```
 
-```{r regression}
+```{r regression, eval=FALSE, include=FALSE}
 # We test if the ts variables are stationary before applying linear regression model
 library(tseries)
 adf_result = data.frame(t(sapply(apply(ts.df[,2:10], 2, adf.test),c)))
@@ -245,7 +211,7 @@ summary(lm_fed)
 plot(ts.df[,"djo.win"])
 djo.pre = window(ts.df[,"djo.win"],2010.25,2019.25)
 djo.post = window(ts.df[,"djo.win"],2019.50,2020.75)
-djo.post[5] = 0.1
+#djo.post[5] = 0.1
 acf(ts.df[,"djo.win"])
 pacf(ts.df[,"djo.win"])
 #Arima
@@ -274,7 +240,54 @@ best.arima.djo [[3]]
 djo.pred = predict(best.fit.djo,6)$pred
 
 ts.plot(cbind(djo.pre, djo.pred, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
-mape.djo.arima_011 = mean(abs(djo.post - djo.pred)/djo.post)
+mape.djo.arima_211 = mean(abs(djo.post - djo.pred)/djo.post)
+
+```
+```{r djo sariMA}
+#djo
+#sArima
+get.best.sarima <- function(x.ts, maxord = c(1,1,1,1,1,1))
+{
+  best.aic <- 1e8
+  n <- length(x.ts)
+  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
+    for (P in 0:maxord[4]) for(D in 0:maxord[5]) for(Q in 0:maxord[6])
+    {
+      fit <- arima(x.ts, order = c(p,d,q),
+                   seas = list(order = c(P,D,Q),
+                               frequency(x.ts)), method = "CSS")
+      fit.aic <- -2 * fit$loglik + (log(n) + 1) * length(fit$coef)
+      if (fit.aic < best.aic)
+      {
+        best.aic <- fit.aic
+        best.fit <- fit
+        best.model <- c(p,d,q,P,D,Q)
+      }
+      
+  best.aic <- Inf
+  n <- length(x.ts)
+  for (p in 0:maxord[1]) for(d in 0:maxord[2]) for(q in 0:maxord[3])
+    {
+      fit <- arima(x.ts, order = c(p,d,q))
+      fit.aic <- AIC(fit)
+      if (fit.aic < best.aic)
+      {
+        best.aic <- fit.aic
+        best.fit <- fit
+        best.model <- c(p,d,q)
+      }
+    }
+  list(best.aic, best.fit, best.model)
+}
+
+best.arima.djo<- get.best.arima(djo.pre, maxord = c(2,2,2))
+best.fit.djo <- best.arima.djo[[2]]
+acf( resid(best.fit.djo) )
+best.arima.djo [[3]]
+djo.pred = predict(best.fit.djo,6)$pred
+
+ts.plot(cbind(djo.pre, djo.pred, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.djo.arima_211 = mean(abs(djo.post - djo.pred)/djo.post)
 
 ```
 
@@ -283,7 +296,7 @@ mape.djo.arima_011 = mean(abs(djo.post - djo.pred)/djo.post)
 plot(ts.df[,"nad.win"])
 nad.pre = window(ts.df[,"nad.win"],2010.25,2019.25)
 nad.post = window(ts.df[,"nad.win"],2019.50,2020.75)
-nad.post[5] = 0.1
+#nad.post[5] = 0.1
 acf(ts.df[,"nad.win"])
 pacf(ts.df[,"nad.win"])
 #Arima
@@ -353,11 +366,23 @@ ts.plot(cbind(fed.pre, fed.pred, fed.post), lty = c(1,9,2), col=c("black","red",
 mape.fed.arima_011 = mean(abs(fed.post - fed.pred)/fed.post)
 
 ```
-```{r HoltWinters}
+```{r HoltWinters s-m}
 djo.hw = HoltWinters(djo.pre, seasonal = "m")
 djo.forc = predict(djo.hw,n.ahead = 6)
 ts.plot(cbind(djo.pre, djo.forc, djo.post), lty = c(1,9,2), col=c("black","red","blue") )
 mape.djo.hw1 = accuracy(djo.forc,djo.post)
 mape.djo.hw = mean(abs(djo.post - djo.forc)/djo.post)
-
+#nad
+nad.hw = HoltWinters(nad.pre, seasonal = "m")
+nad.forc = predict(nad.hw,n.ahead = 6)
+ts.plot(cbind(nad.pre, nad.forc, nad.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.nad.hw1 = accuracy(nad.forc,nad.post)
+mape.nad.hw = mean(abs(nad.post - nad.forc)/nad.post)
+#fed
+fed.hw = HoltWinters(fed.pre, seasonal = "m")
+fed.forc = predict(fed.hw,n.ahead = 6)
+ts.plot(cbind(fed.pre, fed.forc, fed.post), lty = c(1,9,2), col=c("black","red","blue") )
+mape.fed.hw1 = accuracy(fed.forc,fed.post)
+mape.fed.hw = mean(abs(fed.post - fed.forc)/fed.post))
 ```
+
