@@ -1,12 +1,13 @@
 ---
 title: "project565"
-author: "Arisara Kanaprasertkul"
 date: "12/4/2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = TRUE)
 ```
 
 
@@ -32,7 +33,7 @@ bp = tail(bp[order(bp$total_wins),],10)
 par(las=2, mar = c(4,14,4,4));barplot(bp$total_wins,names.arg = bp$winner_name, horiz=T, xlim = c(0,700))
 ```
 
-```{r data aggregation- don't use}
+```{r data aggregation- dont use}
 
 bp2=tennis3; bp2$year = as.numeric(substring(bp2$tourney_date, 1, 4))
 bp3 = bp2 %>% group_by(winner_name, year)%>%summarise(wins = n())
